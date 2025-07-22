@@ -1,0 +1,15 @@
+# IDEs
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Air (Live reload)
+.air.toml
+
+# Env & temporary files
+tmp/
+tmp/**
+.env

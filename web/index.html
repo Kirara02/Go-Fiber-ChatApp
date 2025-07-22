@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Go Chat App</title>
+    <style>
+      /* --- Global Style & Font --- */
+      :root {
+        --primary-color: #007bff;
+        --primary-hover: #0069d9;
+        --secondary-color: #6c757d;
+        --danger-color: #dc3545;
+        --light-bg: #f8f9fa;
+        --border-color: #dee2e6;
+        --text-color: #212529;
+        --subtle-text: #6c757d;
+        --online-color: #28a745;
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          Helvetica, Arial, sans-serif;
+        margin: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #e9ecef;
+      }
+
+      .hidden {
+        display: none !important;
+      }
+
+      /* --- Container Utama (Auth, Lobby, Chat) --- */
+      .container {
+        width: 95%;
+        background-color: #fff;
+        border-radius: 12px;
+        box-shadow: 0 5px 15px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+      }
+
+      /* --- Auth & Lobby --- */
+      .auth-container,
+      .lobby-container {
+        max-width: 420px;
+        padding: 2.5rem;
+      }
+
+      h2 {
+        text-align: center;
+        color: var(--text-color);
+        margin-bottom: 2rem;
+      }
+      .form-group {
+        margin-bottom: 1.25rem;
+      }
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-color);
+      }
+      input,
+      select {
+        width: 100%;
+        padding: 0.85rem;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        box-sizing: border-box;
+        font-size: 1rem;
+        transition: border-color 0.2s, box-shadow 0.2s;
+      }
+      input:focus,
+      select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.25);
+      }
+      button {
+        width: 100%;
+        padding: 0.85rem;
+        border: none;
+        border-radius: 6px;
+        background-color: var(--primary-color);
+        color: white;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      button:hover:not(:disabled) {
+        background-color: var(--primary-hover);
+      }
+      button:disabled {
+        background-color: #a0cffa;
+        cursor: not-allowed;
+      }
+
+      .toggle-link {
+        text-align: center;
+        margin-top: 1.5rem;
+      }
+      .toggle-link a {
+        color: var(--primary-color);
+        cursor: pointer;
+        text-decoration: none;
+        font-weight: 500;
+      }
+      .error-message {
+        color: var(--danger-color);
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        text-align: center;
+      }
+
+      /* --- Style Spesifik Lobby --- */
+      .lobby-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+      }
+      .lobby-header h2 {
+        margin: 0;
+        text-align: left;
+      }
+      .lobby-section {
+        margin-top: 2rem;
+        border-top: 1px solid #f1f1f1;
+        padding-top: 1.5rem;
+      }
+      .lobby-section h3 {
+        margin-top: 0;
+        color: var(--text-color);
+      }
+      #rooms-list {
+        list-style: none;
+        padding: 0;
+        max-height: 200px;
+        overflow-y: auto;
+      }
+      .avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover; /* Memastikan gambar tidak gepeng */
+        background-color: #eee; /* Warna fallback saat gambar dimuat */
+        flex-shrink: 0;
+      }
+
+      /* Sesuaikan styling daftar room untuk menampung avatar */
+      #rooms-list li {
+        display: flex;
+        align-items: center;
+        gap: 1rem; /* Jarak antara avatar dan nama */
+        padding: 0.75rem 1rem;
+      }
+      .room-list-info {
+        font-weight: 500;
+      }
+      #users-select {
+        height: 120px;
+      }
+      .form-hint {
+        font-size: 0.85em;
+        color: var(--subtle-text);
+        margin-top: -0.75rem;
+        margin-bottom: 0.5rem;
+      }
+
+      /* --- Style Chat --- */
+      #chat-container {
+        max-width: 800px;
+        height: 90vh;
+        max-height: 800px;
+        display: flex;
+        flex-direction: column;
+        padding: 0;
+      }
+      #chat-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        background-color: var(--light-bg);
+        border-bottom: 1px solid var(--border-color);
+        flex-shrink: 0;
+      }
+      .chat-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+      .avatar-placeholder {
+        display: none;
+      }
+      .chat-info {
+        flex-grow: 1;
+      }
+
+      .chat-info .room-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .chat-info .room-status {
+        font-size: 0.8rem;
+        color: var(--subtle-text);
+      }
+      .btn-secondary {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--secondary-color);
+        background-color: transparent;
+        color: var(--secondary-color);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+      }
+      .btn-secondary:hover {
+        background-color: var(--secondary-color);
+        color: white;
+      }
+
+      #messages {
+        flex-grow: 1;
+        padding: 10px 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        background-color: #fff;
+      }
+      .message {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 2px;
+        max-width: 70%;
+        padding-top: 10px;
+      }
+      .message.is-grouped {
+        margin-top: -8px;
+      } /* Grouping messages */
+
+      .message-bubble {
+        padding: 10px 14px;
+        border-radius: 18px;
+        word-wrap: break-word;
+      }
+      .receiver {
+        align-self: flex-start;
+      }
+      .receiver .message-bubble {
+        background-color: #e9e9eb;
+      }
+      .sender {
+        align-self: flex-end;
+      }
+      .sender .message-bubble {
+        background-color: var(--primary-color);
+        color: white;
+      }
+      .sender-name {
+        font-weight: 600;
+        font-size: 0.8em;
+        margin: 0 8px 4px 8px;
+        color: var(--subtle-text);
+      }
+      .sender .sender-name {
+        align-self: flex-end;
+      }
+      .message-timestamp {
+        font-size: 0.7rem;
+        color: var(--subtle-text);
+        margin: 4px 8px 0 8px;
+        align-self: flex-end;
+      }
+      .receiver .message-timestamp {
+        align-self: flex-start;
+      }
+
+      .status-message {
+        align-self: center;
+        background-color: #e2e3e5;
+        color: var(--subtle-text);
+        font-size: 0.8rem;
+        font-style: italic;
+        padding: 4px 12px;
+        border-radius: 12px;
+        margin: 10px 0;
+      }
+
+      #form {
+        display: flex;
+        align-items: center;
+        padding: 15px;
+        background-color: var(--light-bg);
+        border-top: 1px solid var(--border-color);
+        flex-shrink: 0;
+      }
+      #input {
+        flex-grow: 1;
+        border: 1px solid #ccc;
+        padding: 10px 15px;
+        border-radius: 20px;
+        margin-right: 10px;
+        font-size: 1rem;
+      }
+      #form button {
+        padding: 10px;
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        flex-shrink: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+      #form button svg {
+        width: 24px;
+        height: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Auth UI -->
+    <div id="auth-ui" class="container auth-container">
+      <div id="login-view">
+        <h2>Login</h2>
+        <form id="login-form">
+          <div class="form-group">
+            <label for="login-email">Email</label
+            ><input type="email" id="login-email" required />
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label
+            ><input type="password" id="login-password" required />
+          </div>
+          <button type="submit">Login</button>
+          <p id="login-error" class="error-message hidden"></p>
+        </form>
+        <p class="toggle-link">
+          Belum punya akun? <a id="show-register">Daftar di sini</a>
+        </p>
+      </div>
+      <div id="register-view" class="hidden">
+        <h2>Register</h2>
+        <form id="register-form">
+          <div class="form-group">
+            <label for="register-name">Nama</label
+            ><input type="text" id="register-name" required />
+          </div>
+          <div class="form-group">
+            <label for="register-email">Email</label
+            ><input type="email" id="register-email" required />
+          </div>
+          <div class="form-group">
+            <label for="register-password">Password</label
+            ><input type="password" id="register-password" required />
+          </div>
+          <button type="submit">Register</button>
+          <p id="register-error" class="error-message hidden"></p>
+        </form>
+        <p class="toggle-link">
+          Sudah punya akun? <a id="show-login">Login di sini</a>
+        </p>
+      </div>
+    </div>
+
+    <!-- Lobby UI -->
+    <div id="lobby-container" class="container lobby-container hidden">
+      <div class="lobby-header">
+        <h2 id="welcome-message"></h2>
+        <button id="logout-btn-lobby" class="btn-secondary">Logout</button>
+      </div>
+      <div class="lobby-section">
+        <h3>Pilih Room</h3>
+        <ul id="rooms-list"></ul>
+      </div>
+      <div class="lobby-section">
+        <h3>Buat Room Baru</h3>
+        <form id="create-room-form">
+          <div class="form-group">
+            <label for="users-select">Pilih Anggota</label>
+            <p class="form-hint">
+              Pilih 1 orang untuk Direct Message, atau 2+ orang untuk Grup.
+            </p>
+            <select id="users-select" multiple required></select>
+          </div>
+          <div id="group-name-container" class="form-group hidden">
+            <label for="room-name">Nama Grup (wajib diisi)</label>
+            <input
+              type="text"
+              id="room-name"
+              placeholder="Contoh: Tim Proyek Alpha"
+            />
+          </div>
+          <p id="owner-info" class="form-hint hidden">
+            Anda akan menjadi pemilik grup ini.
+          </p>
+          <button type="submit">Buat Room</button>
+          <p id="create-room-error" class="error-message hidden"></p>
+        </form>
+      </div>
+    </div>
+
+    <!-- Chat UI -->
+    <div id="chat-container" class="container hidden">
+      <div id="chat-header">
+        <div class="chat-header-left">
+          <button id="back-to-lobby-btn" class="btn-secondary">Kembali</button>
+          <img id="chat-avatar" class="avatar" src="" alt="Avatar Room" />
+          <div class="chat-info">
+            <div class="room-name" id="room-name-display"></div>
+            <div class="room-status" id="room-status-display"></div>
+          </div>
+        </div>
+        <span id="user-info"></span>
+      </div>
+      <div id="messages"></div>
+      <form id="form">
+        <input
+          type="text"
+          id="input"
+          autocomplete="off"
+          placeholder="Ketik pesan..."
+        />
+        <button type="submit" aria-label="Kirim Pesan">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+            width="24"
+            height="24"
+          >
+            <path
+              d="M1.946 9.315c-.522-.174-.527-.455.01-.634l19.087-6.362c.529-.176.832.12.684.638l-5.454 19.086c-.15.529-.455.547-.679.045L12 14l6-8-8 6-8.054-2.685z"
+            ></path>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <script>
+      window.addEventListener("DOMContentLoaded", (event) => {
+        // --- Referensi Elemen UI ---
+        const authUi = document.getElementById("auth-ui");
+        const lobbyContainer = document.getElementById("lobby-container");
+        const chatContainer = document.getElementById("chat-container");
+
+        // Auth
+        const loginView = document.getElementById("login-view");
+        const registerView = document.getElementById("register-view");
+        const loginForm = document.getElementById("login-form");
+        const registerForm = document.getElementById("register-form");
+        const loginError = document.getElementById("login-error");
+        const registerError = document.getElementById("register-error");
+
+        // Lobby
+        const welcomeMessage = document.getElementById("welcome-message");
+        const logoutBtnLobby = document.getElementById("logout-btn-lobby");
+        const roomsList = document.getElementById("rooms-list");
+        const createRoomForm = document.getElementById("create-room-form");
+        const usersSelect = document.getElementById("users-select");
+        const roomNameInput = document.getElementById("room-name");
+        const createRoomError = document.getElementById("create-room-error");
+        const groupNameContainer = document.getElementById(
+          "group-name-container"
+        );
+        const ownerInfo = document.getElementById("owner-info");
+
+        // Chat
+        const chatForm = document.getElementById("form");
+        const chatInput = document.getElementById("input");
+        const messagesDiv = document.getElementById("messages");
+        const userInfoSpan = document.getElementById("user-info");
+        const roomNameDisplay = document.getElementById("room-name-display");
+        const backToLobbyBtn = document.getElementById("back-to-lobby-btn");
+        const chatAvatar = document.getElementById("chat-avatar");
+        const roomStatusDisplay = document.getElementById(
+          "room-status-display"
+        );
+
+        // --- State Aplikasi ---
+        let myId = 0;
+        let myName = "";
+        let currentToken = "";
+        let socket;
+        let existingDMs = new Map();
+        let lastSenderId = null;
+
+        function generateAvatarUrl(name) {
+          const encodedName = encodeURIComponent(name);
+          return `https://ui-avatars.com/api/?name=${encodedName}&background=random&color=fff&bold=true`;
+        }
+
+        function formatTimestamp(dateString) {
+          if (!dateString) return "";
+          const date = new Date(dateString);
+          return date.toLocaleTimeString("id-ID", {
+            hour: "2-digit",
+            minute: "2-digit",
+          });
+        }
+
+        // --- Fungsi untuk menampilkan layar yang berbeda ---
+        function showScreen(screen) {
+          authUi.classList.add("hidden");
+          lobbyContainer.classList.add("hidden");
+          chatContainer.classList.add("hidden");
+          document.getElementById(screen).classList.remove("hidden");
+        }
+
+        // --- Logika Utama Saat Memuat Halaman ---
+        currentToken = localStorage.getItem("jwtToken");
+        const storedUserInfo = localStorage.getItem("userInfo");
+        if (currentToken && storedUserInfo) {
+          const userInfo = JSON.parse(storedUserInfo);
+          myId = userInfo.id;
+          myName = userInfo.name;
+          showLobby();
+        } else {
+          showScreen("auth-ui");
+          loginView.classList.remove("hidden");
+        }
+
+        // --- Fungsi Lobi ---
+        async function showLobby() {
+          welcomeMessage.textContent = `Selamat Datang, ${myName}!`;
+          showScreen("lobby-container");
+          await populateRoomsList();
+          await populateUsersForCreation();
+        }
+
+        async function populateRoomsList() {
+          try {
+            const res = await fetch("/api/rooms", {
+              headers: { Authorization: `Bearer ${currentToken}` },
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            roomsList.innerHTML = "";
+            if (data.data.length === 0) {
+              roomsList.innerHTML =
+                "<li>Anda belum bergabung dengan room manapun.</li>";
+              return;
+            }
+
+            data.data.forEach((room) => {
+              const li = document.createElement("li");
+              const displayName = getDisplayNameForRoom(room);
+              const avatarUrl = generateAvatarUrl(displayName);
+
+              // --- Gunakan innerHTML untuk membuat struktur baru ---
+              li.innerHTML = `
+                        <img class="avatar" src="${avatarUrl}" alt="Avatar for ${displayName}">
+                        <div class="room-list-info">${displayName}</div>
+                    `;
+
+              li.dataset.roomId = room.id;
+              // Simpan seluruh objek room agar mudah diakses nanti
+              li.dataset.roomObject = JSON.stringify(room);
+              li.classList.add("room-item");
+              roomsList.appendChild(li);
+            });
+          } catch (err) {
+            console.error("Gagal memuat daftar room:", err);
+            roomsList.innerHTML = "<li>Gagal memuat daftar room.</li>";
+          }
+        }
+
+        async function populateUsersForCreation() {
+          try {
+            const res = await fetch("/api/users", {
+              headers: { Authorization: `Bearer ${currentToken}` },
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            usersSelect.innerHTML = "";
+            data.data.forEach((user) => {
+              // Jangan tampilkan diri sendiri di daftar pilihan
+              if (user.id !== myId) {
+                const option = document.createElement("option");
+                option.value = user.id;
+                option.textContent = user.name;
+                usersSelect.appendChild(option);
+              }
+            });
+          } catch (err) {
+            console.error("Gagal memuat daftar pengguna:", err);
+          }
+        }
+
+        function getDisplayNameForRoom(room) {
+          if (!room.users || !Array.isArray(room.users)) {
+            return room.name || "Grup";
+          }
+
+          if (!room.isPrivate || room.users.length !== 2) {
+            return room.name || "Grup Tanpa Nama";
+          }
+
+          const otherUser = room.users.find((user) => user.id !== myId);
+
+          return otherUser ? otherUser.name : "Direct Message";
+        }
+
+        createRoomForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          // Validasi nama grup jika diperlukan
+          if (roomNameInput.required && !roomNameInput.value.trim()) {
+            createRoomError.textContent = "Nama grup wajib diisi.";
+            createRoomError.classList.remove("hidden");
+            return;
+          }
+
+          // Sisa logikanya hampir sama
+          const name = roomNameInput.value;
+          const selectedUserIds = Array.from(usersSelect.selectedOptions).map(
+            (option) => parseInt(option.value)
+          );
+
+          if (selectedUserIds.length === 0) {
+            createRoomError.textContent = "Pilih minimal satu anggota.";
+            createRoomError.classList.remove("hidden");
+            return;
+          }
+
+          try {
+            const res = await fetch("/api/rooms", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${currentToken}`,
+              },
+              // Di backend, kita akan menentukan owner berdasarkan creatorID
+              body: JSON.stringify({ name: name, userIds: selectedUserIds }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            createRoomForm.reset();
+            createRoomError.classList.add("hidden");
+            // Trigger event 'change' secara manual untuk mereset tampilan form
+            usersSelect.dispatchEvent(new Event("change"));
+            await populateRoomsList();
+          } catch (err) {
+            createRoomError.textContent = err.message;
+            createRoomError.classList.remove("hidden");
+          }
+        });
+
+        // --- Event Listeners ---
+        document
+          .getElementById("show-register")
+          .addEventListener("click", () => {
+            loginView.classList.add("hidden");
+            registerView.classList.remove("hidden");
+          });
+        document.getElementById("show-login").addEventListener("click", () => {
+          registerView.classList.add("hidden");
+          loginView.classList.remove("hidden");
+        });
+
+        registerForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+
+          const name = document.getElementById("register-name").value;
+          const email = document.getElementById("register-email").value;
+          const password = document.getElementById("register-password").value;
+
+          registerError.classList.add("hidden");
+
+          try {
+            const res = await fetch("/api/auth/register", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({ name, email, password }),
+            });
+
+            const data = await res.json();
+
+            if (!data.success) {
+              throw new Error(
+                data.message || "Terjadi kesalahan saat registrasi."
+              );
+            }
+
+            alert("Registrasi berhasil! Silakan login dengan akun Anda.");
+
+            registerForm.reset();
+
+            document.getElementById("show-login").click();
+          } catch (err) {
+            registerError.textContent = err.message;
+            registerError.classList.remove("hidden");
+          }
+        });
+
+        loginForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const email = document.getElementById("login-email").value;
+          const password = document.getElementById("login-password").value;
+          try {
+            const res = await fetch("/api/auth/login", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password }),
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.message);
+
+            currentToken = data.data.access_token;
+            myId = data.data.user.id;
+            myName = data.data.user.name;
+
+            localStorage.setItem("jwtToken", currentToken);
+            localStorage.setItem("userInfo", JSON.stringify(data.data.user));
+
+            showLobby();
+          } catch (err) {
+            loginError.textContent = err.message;
+            loginError.classList.remove("hidden");
+          }
+        });
+
+        function handleLogout() {
+          // ... (Logika fetch /api/auth/logout Anda bisa ditambahkan di sini) ...
+
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close(1000, "Logout by user");
+          }
+          localStorage.removeItem("jwtToken");
+          localStorage.removeItem("userInfo");
+          myId = 0;
+          myName = "";
+          currentToken = "";
+          socket = null;
+          showScreen("auth-ui");
+          loginView.classList.remove("hidden");
+        }
+        logoutBtnLobby.addEventListener("click", handleLogout);
+
+        roomsList.addEventListener("click", (e) => {
+          const roomItem = e.target.closest(".room-item");
+          if (roomItem) {
+            const room = JSON.parse(roomItem.dataset.roomObject);
+            enterChatRoom(room);
+          }
+        });
+
+        backToLobbyBtn.addEventListener("click", () => {
+          if (socket) {
+            socket.close(1000, "Kembali ke lobi");
+            socket = null;
+          }
+          showLobby();
+        });
+
+        usersSelect.addEventListener("change", () => {
+          const selectedOptions = Array.from(usersSelect.selectedOptions);
+          const selectedCount = selectedOptions.length;
+
+          createRoomError.classList.add("hidden");
+
+          if (selectedCount === 1) {
+            const otherUserId = parseInt(selectedOptions[0].value);
+            const memberIds = [myId, otherUserId].sort();
+            const dmKey = memberIds.join("-");
+
+            if (existingDMs.has(dmKey)) {
+              createRoomError.textContent =
+                "Anda sudah memiliki DM dengan pengguna ini.";
+              createRoomError.classList.remove("hidden");
+              createRoomForm.querySelector(
+                'button[type="submit"]'
+              ).disabled = true;
+            } else {
+              createRoomForm.querySelector(
+                'button[type="submit"]'
+              ).disabled = false;
+            }
+          } else {
+            createRoomForm.querySelector(
+              'button[type="submit"]'
+            ).disabled = false;
+          }
+
+          if (selectedCount >= 2) {
+            groupNameContainer.classList.remove("hidden");
+            ownerInfo.classList.remove("hidden");
+            roomNameInput.required = true;
+          } else {
+            groupNameContainer.classList.add("hidden");
+            ownerInfo.classList.add("hidden");
+            roomNameInput.required = false;
+          }
+        });
+
+        function enterChatRoom(room) {
+          // Terima seluruh objek room
+          showScreen("chat-container");
+          const displayName = getDisplayNameForRoom(room);
+          const isDM = room.isPrivate && room.users && room.users.length === 2;
+          const avatarUrl = generateAvatarUrl(displayName);
+
+          // --- Atur header chat dengan informasi baru ---
+          chatAvatar.src = avatarUrl;
+          roomNameDisplay.textContent = displayName;
+
+          if (isDM) {
+            roomStatusDisplay.textContent = "Online";
+          } else {
+            roomStatusDisplay.textContent = `${room.users.length} anggota`;
+          }
+
+          userInfoSpan.textContent = `Login sebagai: ${myName}`;
+          messagesDiv.innerHTML = "";
+          lastSenderId = null;
+          connectWebSocket(currentToken, room.id);
+        }
+
+        const addChatMessage = (msg) => {
+          const isSender = msg.senderId === myId;
+
+          const messageElement = document.createElement("div");
+          messageElement.classList.add(
+            "message",
+            isSender ? "sender" : "receiver"
+          );
+
+          if (lastSenderId === msg.senderId) {
+            messageElement.classList.add("is-grouped");
+          } else {
+            const nameElement = document.createElement("div");
+            nameElement.classList.add("sender-name");
+            nameElement.textContent = isSender ? "You" : msg.senderName;
+            messageElement.appendChild(nameElement);
+          }
+
+          const bubbleElement = document.createElement("div");
+          bubbleElement.classList.add("message-bubble");
+          bubbleElement.textContent = msg.content;
+          messageElement.appendChild(bubbleElement);
+
+          const timestampElement = document.createElement("div");
+          timestampElement.classList.add("message-timestamp");
+          timestampElement.textContent = formatTimestamp(msg.createdAt);
+          messageElement.appendChild(timestampElement);
+
+          messagesDiv.appendChild(messageElement);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+
+          lastSenderId = msg.senderId;
+        };
+
+        const addStatusMessage = (text) => {
+          const statusElement = document.createElement("div");
+          statusElement.classList.add("message", "status-message");
+          statusElement.textContent = text;
+          messagesDiv.appendChild(statusElement);
+          messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        };
+
+        function connectWebSocket(token, roomId) {
+          if (!token || !roomId) return;
+          if (socket) {
+            socket.onclose = null;
+            socket.close();
+          }
+
+          const ws_scheme =
+            window.location.protocol === "https:" ? "wss" : "ws";
+          const ws_path = `${ws_scheme}://${window.location.host}/chat/ws/${roomId}?token=${token}`;
+
+          socket = new WebSocket(ws_path);
+
+          socket.onopen = (e) => {
+            console.log(`Koneksi ke room ${roomId} berhasil.`);
+            addStatusMessage(`Terhubung ke room!`);
+          };
+
+          socket.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            if (data.type === "history") {
+              lastSenderId = null;
+              data.messages.forEach((msg) => addChatMessage(msg));
+              addStatusMessage("Riwayat chat berhasil dimuat.");
+            } else if (data.type === "chat") {
+              addChatMessage(data);
+            } else if (data.type === "info") {
+              lastSenderId = null; // Reset saat ada pesan status
+              addStatusMessage(data.content);
+            }
+          };
+
+          socket.onclose = (event) => {
+            console.error(
+              `Koneksi ke room ${roomId} ditutup. Kode: ${event.code}`
+            );
+            if (event.code !== 1000) {
+              addStatusMessage("Koneksi terputus.");
+            }
+          };
+
+          socket.onerror = (error) => {
+            console.error("Error WebSocket:", error);
+            addStatusMessage("Terjadi kesalahan koneksi.");
+          };
+        }
+
+        chatForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          if (
+            socket &&
+            socket.readyState === WebSocket.OPEN &&
+            chatInput.value
+          ) {
+            socket.send(chatInput.value);
+            chatInput.value = "";
+          }
+        });
+      });
+    </script>
+  </body>
+</html>
