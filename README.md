@@ -1,6 +1,6 @@
 # Go Fiber Real-Time Chat Application
 
-![Go Version](https://img.shields.io/badge/Go-1.18+-00ADD8?style=for-the-badge&logo=go)
+![Go Version](https://img.shields.io/badge/Go-1.24+-00ADD8?style=for-the-badge&logo=go)
 ![Framework](https://img.shields.io/badge/Fiber-v2-00ADD8?style=for-the-badge&logo=go)
 ![Database](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql)
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
@@ -56,7 +56,7 @@ Aplikasi ini menggunakan arsitektur berlapis (Layered Architecture) untuk memast
 
 ### Prasyarat
 
-- [Go](https://golang.org/dl/) (versi 1.18+)
+- [Go](https://golang.org/dl/) (versi 1.24+)
 - [Docker](https://www.docker.com/get-started) & [Docker Compose](https://docs.docker.com/compose/install/)
 
 ---
