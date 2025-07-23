@@ -26,7 +26,7 @@ func (h *Hub) GetOrCreateRoom(roomID string, chatRepo repository.ChatRepository)
 		return room
 	}
 
-	room := NewRoom(roomID, chatRepo)
+	room := NewRoom(roomID, chatRepo, h)
 	h.rooms[roomID] = room
 
 	go room.Run()

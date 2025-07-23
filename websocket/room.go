@@ -20,9 +20,10 @@ type Room struct {
 	Register   chan *Client
 	Unregister chan *Client
 	chatRepo   repository.ChatRepository
+	hub        *Hub
 }
 
-func NewRoom(id string, chatRepo repository.ChatRepository) *Room {
+func NewRoom(id string, chatRepo repository.ChatRepository, hub *Hub) *Room {
 	return &Room{
 		ID:         id,
 		clients:    make(map[*Client]bool),
@@ -30,6 +31,7 @@ func NewRoom(id string, chatRepo repository.ChatRepository) *Room {
 		Register:   make(chan *Client), 
 		Unregister: make(chan *Client),
 		chatRepo:   chatRepo,
+		hub:        hub,
 	}
 }
 
@@ -45,6 +47,9 @@ func (r *Room) Run() {
 				delete(r.clients, client)
 				close(client.Send)
 				log.Printf("Client %s meninggalkan room %s", client.UserName, r.ID)
+				if r.hub != nil {
+					r.hub.removeRoomIfEmpty(r)
+				}
 			}
 
 		case message := <-r.broadcast:
