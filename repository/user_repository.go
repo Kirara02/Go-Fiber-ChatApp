@@ -11,7 +11,7 @@ type UserRepository interface {
 	GetUserByEmail(email string) (*domain.User, error)
 	GetUserByID(id uint) (*domain.User, error)
 	GetUsersByIDs(ids []uint) ([]*domain.User, error)
-	GetAllUsers() ([]*domain.User, error)
+	GetAllUsers(keyword string, currentUserID uint, includeSelf bool) ([]*domain.User, error)
 	UpdateUser(user *domain.User) error
 	DeleteUser(id uint) error
 }
@@ -54,10 +54,21 @@ func (r *userRepository) GetUsersByIDs(ids []uint) ([]*domain.User, error) {
 	return users, nil
 }
 
-func (r *userRepository) GetAllUsers() ([]*domain.User, error) {
+func (r *userRepository) GetAllUsers(keyword string, currentUserID uint, includeSelf bool) ([]*domain.User, error) {
 	var users []*domain.User
 
-	if err := r.db.Find(&users).Error; err != nil {
+	db := r.db
+	
+	if !includeSelf {
+		db = db.Where("id != ?", currentUserID)
+	}
+	
+	if keyword != "" {
+		searchQuery := "%" + keyword + "%"
+		db = db.Where("name ILIKE ?", searchQuery)
+	}
+
+	if err := db.Find(&users).Error; err != nil {
 		return nil, err
 	}
 

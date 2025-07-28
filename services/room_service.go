@@ -8,11 +8,12 @@ import (
 	"main/utils"
 	"sort"
 	"strings"
+	"time"
 )
 
 type RoomService interface {
 	CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error)
-	GetMyRooms(userID uint) ([]dto.RoomResponse, error)
+	GetMyRooms(userID uint, view string, includeMembers bool) ([]dto.RoomResponse, error)
 	IsUserMember(userID, roomID uint) (bool, error)
 }
 
@@ -82,22 +83,35 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 		return nil, err
 	}
 	
-	response := dto.ToRoomResponse(createdRoom)
+	response := dto.ToRoomResponse(createdRoom, creatorID, true)
 	return &response, nil
 }
 
 
-func (s *roomService) GetMyRooms(userID uint) ([]dto.RoomResponse, error) {
-	rooms, err := s.roomRepo.GetUserRooms(userID)
+func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) ([]dto.RoomResponse, error) {
+	var rooms []*domain.Room
+	var err error
+
+	if view == "simple" {
+		rooms, err = s.roomRepo.GetSimpleUserRooms(userID)
+	} else {
+		rooms, err = s.roomRepo.GetUserRoomsWithDetails(userID)
+		
+		if err == nil && len(rooms) > 0 {
+			sort.Slice(rooms, func(i, j int) bool {
+				var timeI, timeJ time.Time
+				if rooms[i].LastMessage.ID != 0 { timeI = rooms[i].LastMessage.CreatedAt } else { timeI = rooms[i].CreatedAt }
+				if rooms[j].LastMessage.ID != 0 { timeJ = rooms[j].LastMessage.CreatedAt } else { timeJ = rooms[j].CreatedAt }
+				return timeI.After(timeJ)
+			})
+		}
+	}
+
 	if err != nil {
 		return nil, err
 	}
 	
-	responses := []dto.RoomResponse{}
-
-	if len(rooms) > 0 {
-		responses = dto.ToRoomResponses(rooms)
-	}
+	responses := dto.ToRoomResponses(rooms, userID, includeMembers)
 
 	return responses, nil
 }

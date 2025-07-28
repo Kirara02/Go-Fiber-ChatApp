@@ -10,7 +10,8 @@ import (
 type RoomRepository interface {
 	CreateRoom(room *domain.Room, memberIDs []uint) (*domain.Room, error)
 	GetRoomByID(id uint) (*domain.Room, error)
-	GetUserRooms(userID uint) ([]*domain.Room, error)
+	GetUserRoomsWithDetails(userID uint) ([]*domain.Room, error)
+	GetSimpleUserRooms(userID uint) ([]*domain.Room, error)
 	CheckUserInRoom(userID, roomID uint) (bool, error)
 	FindPrivateRoomByMembers(memberIDs []uint) (*domain.Room, error)
 }
@@ -66,11 +67,55 @@ func (r *roomRepository) GetRoomByID(id uint) (*domain.Room, error) {
 	return &room, nil
 }
 
-func (r *roomRepository) GetUserRooms(userID uint) ([]*domain.Room, error) {
+func (r *roomRepository) GetUserRoomsWithDetails(userID uint) ([]*domain.Room, error) {
 	var user domain.User
 	if err := r.db.Preload("Rooms.Users").First(&user, userID).Error; err != nil {
 		return nil, err
 	}
+	if len(user.Rooms) == 0 { 
+		return []*domain.Room{}, nil 
+	}
+
+	var roomIDs []uint
+	for _, room := range user.Rooms {
+		roomIDs = append(roomIDs, room.ID)
+	}
+
+	var lastMessages []domain.ChatMessage
+
+	subQuery := r.db.Model(&domain.ChatMessage{}).Select("MAX(id)").Where("room_id IN ?", roomIDs).Group("room_id")
+	if err := r.db.Where("id IN (?)", subQuery).Order("created_at desc").Find(&lastMessages).Error; err != nil {
+		return nil, err
+	}
+
+	lastMessageMap := make(map[uint]domain.ChatMessage)
+	for _, msg := range lastMessages {
+		lastMessageMap[msg.RoomID] = msg
+	}
+
+	for _, room := range user.Rooms {
+		if lastMsg, ok := lastMessageMap[room.ID]; ok {
+			room.LastMessage = lastMsg
+		}
+	}
+
+	return user.Rooms, nil
+}
+
+func (r *roomRepository) GetSimpleUserRooms(userID uint) ([]*domain.Room, error) {
+	var user domain.User
+	
+	err := r.db.
+		Preload("Rooms", func(db *gorm.DB) *gorm.DB {
+			return db.Order("rooms.created_at DESC")
+		}).
+		Preload("Rooms.Users").
+		First(&user, userID).Error
+
+	if err != nil {
+		return nil, err
+	}
+	
 	return user.Rooms, nil
 }
 
@@ -103,8 +148,6 @@ func (r *roomRepository) FindPrivateRoomByMembers(memberIDs []uint) (*domain.Roo
 		Preload("Users").
 		First(&room).Error
 	
-	// Jika GORM mengembalikan `ErrRecordNotFound`, itu berarti tidak ada DM yang cocok.
-	// Ini bukan error, jadi kita kembalikan nil, nil.
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}

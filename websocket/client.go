@@ -3,7 +3,9 @@ package websocket
 import (
 	"encoding/json"
 	"log"
-	"main/domain"
+	"main/dto"
+	"strconv"
+	"time"
 
 	ws "github.com/gofiber/websocket/v2"
 )
@@ -41,17 +43,20 @@ func (c *Client) ReadPump() {
 			break
 		}
 		
-		// Buat object pesan untuk di-marshal ke JSON
-		chatMessage := domain.ChatMessage{
+		roomIDUint, _ := strconv.ParseUint(c.room.ID, 10, 32)
+
+		chatMessageDTO := dto.ChatMessageResponse{
 			Type:       "chat",
 			SenderID:   c.UserID,
 			SenderName: c.UserName,
 			Content:    string(message),
+			RoomID:     uint(roomIDUint),
+			CreatedAt:  time.Now(),
 		}
 		
-		jsonMessage, err := json.Marshal(chatMessage)
+		jsonMessage, err := json.Marshal(chatMessageDTO)
 		if err != nil {
-			log.Println("Error marshal chat message:", err)
+			log.Println("Error marshal real-time chat message DTO:", err)
 			continue
 		}
 		

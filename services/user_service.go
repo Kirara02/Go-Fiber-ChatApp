@@ -14,7 +14,7 @@ import (
 type UserService interface {
 	CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, error)
 	GetUserByID(id uint) (*dto.UserResponse, error)
-	GetAllUsers() ([]dto.UserResponse, error)
+	GetAllUsers(keyword string, currentUserID uint, includeSelf bool) ([]dto.UserResponse, error)
 	UpdateUser(id uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
 	DeleteUser(id uint) error
 }
@@ -65,10 +65,15 @@ func (s *userService) GetUserByID(id uint) (*dto.UserResponse, error) {
 	return &response, nil
 }
 
-func (s *userService) GetAllUsers() ([]dto.UserResponse, error) {
-	users, err := s.userRepo.GetAllUsers()
+func (s *userService) GetAllUsers(keyword string, currentUserID uint, includeSelf bool) ([]dto.UserResponse, error) {
+	users, err := s.userRepo.GetAllUsers(keyword, currentUserID, includeSelf)
+
 	if err != nil {
 		return nil, err
+	}
+
+	if len(users) == 0 {
+		return []dto.UserResponse{}, nil
 	}
 
 	responses := dto.ToUserResponses(users)

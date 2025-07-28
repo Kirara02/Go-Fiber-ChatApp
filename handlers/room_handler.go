@@ -53,7 +53,10 @@ func (h *RoomHandler) GetMyRooms(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid di context")
 	}
 
-	rooms, err := h.roomService.GetMyRooms(uint(userID))
+	view := c.Query("view", "detailed")
+	includeMembers := c.Query("include_members", "true") == "true"
+
+	rooms, err := h.roomService.GetMyRooms(uint(userID), view, includeMembers)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Gagal mengambil daftar room")
 	}

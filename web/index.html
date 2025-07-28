@@ -540,6 +540,12 @@
             const res = await fetch("/api/rooms", {
               headers: { Authorization: `Bearer ${currentToken}` },
             });
+
+            if (res.status === 401 || res.status === 403) {
+              handleTokenExpired();
+              return;
+            }
+
             const data = await res.json();
             if (!data.success) throw new Error(data.message);
 
@@ -578,6 +584,12 @@
             const res = await fetch("/api/users", {
               headers: { Authorization: `Bearer ${currentToken}` },
             });
+
+            if (res.status === 401 || res.status === 403) {
+              handleTokenExpired();
+              return;
+            }
+
             const data = await res.json();
             if (!data.success) throw new Error(data.message);
 
@@ -601,7 +613,7 @@
             return room.name || "Grup";
           }
 
-          if (!room.isPrivate || room.users.length !== 2) {
+          if (!room.is_private || room.is_group === true) {
             return room.name || "Grup Tanpa Nama";
           }
 
@@ -642,6 +654,12 @@
               // Di backend, kita akan menentukan owner berdasarkan creatorID
               body: JSON.stringify({ name: name, userIds: selectedUserIds }),
             });
+
+            if (res.status === 401 || res.status === 403) {
+              handleTokenExpired();
+              return;
+            }
+
             const data = await res.json();
             if (!data.success) throw new Error(data.message);
 
@@ -655,6 +673,22 @@
             createRoomError.classList.remove("hidden");
           }
         });
+
+        function handleTokenExpired() {
+          // Tutup koneksi websocket jika masih terbuka
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.close(4001, "Token expired");
+            socket = null;
+          }
+          localStorage.removeItem("jwtToken");
+          localStorage.removeItem("userInfo");
+          myId = 0;
+          myName = "";
+          currentToken = "";
+          alert("Sesi Anda telah berakhir. Silakan login kembali.");
+          showScreen("auth-ui");
+          loginView.classList.remove("hidden");
+        }
 
         // --- Event Listeners ---
         document
@@ -732,8 +766,15 @@
           }
         });
 
-        function handleLogout() {
-          // ... (Logika fetch /api/auth/logout Anda bisa ditambahkan di sini) ...
+        logoutBtnLobby.addEventListener("click", async ()  => {
+          try {
+            await fetch("/api/auth/logout", {
+              method: "POST",
+              headers: { Authorization: `Bearer ${currentToken}` }
+            });
+          } catch (e) {
+            console.error(e); 
+          }
 
           if (socket && socket.readyState === WebSocket.OPEN) {
             socket.close(1000, "Logout by user");
@@ -746,8 +787,7 @@
           socket = null;
           showScreen("auth-ui");
           loginView.classList.remove("hidden");
-        }
-        logoutBtnLobby.addEventListener("click", handleLogout);
+        });
 
         roomsList.addEventListener("click", (e) => {
           const roomItem = e.target.closest(".room-item");
@@ -806,10 +846,9 @@
         });
 
         function enterChatRoom(room) {
-          // Terima seluruh objek room
           showScreen("chat-container");
           const displayName = getDisplayNameForRoom(room);
-          const isDM = room.isPrivate && room.users && room.users.length === 2;
+          const isDM = room.is_private && room.is_group === false
           const avatarUrl = generateAvatarUrl(displayName);
 
           // --- Atur header chat dengan informasi baru ---
@@ -829,7 +868,7 @@
         }
 
         const addChatMessage = (msg) => {
-          const isSender = msg.senderId === myId;
+          const isSender = msg.sender_id === myId;
 
           const messageElement = document.createElement("div");
           messageElement.classList.add(
@@ -837,12 +876,12 @@
             isSender ? "sender" : "receiver"
           );
 
-          if (lastSenderId === msg.senderId) {
+          if (lastSenderId === msg.sender_id) {
             messageElement.classList.add("is-grouped");
           } else {
             const nameElement = document.createElement("div");
             nameElement.classList.add("sender-name");
-            nameElement.textContent = isSender ? "You" : msg.senderName;
+            nameElement.textContent = isSender ? "You" : msg.sender_name;
             messageElement.appendChild(nameElement);
           }
 
@@ -859,7 +898,7 @@
           messagesDiv.appendChild(messageElement);
           messagesDiv.scrollTop = messagesDiv.scrollHeight;
 
-          lastSenderId = msg.senderId;
+          lastSenderId = msg.sender_id;
         };
 
         const addStatusMessage = (text) => {
@@ -890,6 +929,11 @@
 
           socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
+            if (data.type === "error" && (data.message === "Token expired" || data.message === "Unauthorized")) {
+              handleTokenExpired();
+              socket.close();
+              return;
+            }
             if (data.type === "history") {
               lastSenderId = null;
               data.messages.forEach((msg) => addChatMessage(msg));
@@ -906,7 +950,7 @@
             console.error(
               `Koneksi ke room ${roomId} ditutup. Kode: ${event.code}`
             );
-            if (event.code !== 1000) {
+            if (event.code !== 1000 && event.code !== 4001) {
               addStatusMessage("Koneksi terputus.");
             }
           };

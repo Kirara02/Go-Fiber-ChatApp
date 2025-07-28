@@ -7,11 +7,11 @@ import (
 
 type ChatMessageResponse struct {
 	Type       string    `json:"type"`
-	SenderID   uint      `json:"senderId"`
-	SenderName string    `json:"senderName"`
+	SenderID   uint      `json:"sender_id"`
+	SenderName string    `json:"sender_name"`
 	Content    string    `json:"content"`
-	RoomID     uint      `json:"roomId"`
-	CreatedAt  time.Time `json:"createdAt"`
+	RoomID     uint      `json:"room_id"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 type ChatHistoryResponse struct {

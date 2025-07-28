@@ -42,7 +42,20 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) GetAllUsers(c *fiber.Ctx) error {
-	users, err := h.userService.GetAllUsers()
+	keyword := c.Query("keyword")
+	includeSelf := c.Query("include_self") == "true"
+
+	userIDLocals := c.Locals("user_id")
+	if userIDLocals == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+	}
+	currentUserID, ok := userIDLocals.(float64)
+	if !ok {
+		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid di context")
+	}
+
+	users, err := h.userService.GetAllUsers(keyword, uint(currentUserID), includeSelf)
+
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Gagal mengambil data pengguna")
 	}
