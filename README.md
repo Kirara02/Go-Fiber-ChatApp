@@ -6,152 +6,168 @@
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker)
 ![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
-Aplikasi chat real-time yang kaya fitur dan berperforma tinggi, dibangun menggunakan Go (Fiber) untuk backend dan Vanilla JavaScript untuk frontend. Proyek ini mendemonstrasikan arsitektur backend yang bersih, penggunaan WebSocket untuk komunikasi dua arah, dan otentikasi berbasis JWT yang aman.
+A high-performance, feature-rich real-time chat application built with Go (Fiber) on the backend and Vanilla JavaScript on the frontend. This project demonstrates a clean backend architecture, WebSocket-based real-time messaging, and secure JWT-based authentication.
 
 ---
 
-### Ganti Screenshot ini!
-_Ganti URL di bawah dengan screenshot aplikasi Anda._
+### Replace This Screenshot!
 
-![App Screenshot](https://via.placeholder.com/800x450.png?text=Screenshot+Aplikasi+Anda)
+_Update the URL below with your app’s actual screenshot._
+
+![App Screenshot](https://via.placeholder.com/800x450.png?text=Your+App+Screenshot)
 
 ---
 
-## ✨ Fitur Utama
+## ✨ Features
 
-- **Otentikasi Aman:** Sistem registrasi, login, dan logout lengkap dengan JWT (Access & Refresh Tokens).
-- **Chat Multi-Ruangan:**
-  - **Direct Messages (DM):** Ruang chat privat 1-lawan-1 yang dibuat secara otomatis.
-  - **Grup Chat:** Buat dan bergabung ke dalam grup dengan banyak anggota.
-- **Komunikasi Real-Time:** Pengiriman dan penerimaan pesan instan via WebSocket.
-- **Lobi & Riwayat Chat:** Lihat daftar room dan akses riwayat percakapan sebelumnya saat memasuki room.
-- **Database Persistence:** Semua data (pengguna, room, pesan) disimpan secara permanen di database PostgreSQL.
-- **UI Intuitif:** Antarmuka frontend yang dinamis, menampilkan nama lawan bicara untuk DM dan avatar yang digenerate otomatis.
+- **Secure Authentication:** Registration, login, logout using JWT (Access & Refresh Tokens).
+- **Multi-Room Chat:**
+  - **Direct Messages (DM):** Auto-created 1-on-1 private chat rooms.
+  - **Group Chats:** Create or join group chats with multiple participants.
+- **Real-Time Messaging:** Instant message delivery via WebSocket.
+- **Lobby & Chat History:** View joined rooms and load previous messages on entry.
+- **Persistent Database:** PostgreSQL for users, rooms, and message storage.
+- **Dynamic UI:** Intuitive frontend with auto-generated avatars and readable user display names.
 
-## 🚀 Tumpukan Teknologi (Tech Stack)
+## 📦 Tech Stack
 
-| Komponen | Teknologi                                                              |
-| :------- | :--------------------------------------------------------------------- |
-| **Backend**      | Go, [Fiber v2](https://gofiber.io/), [GORM](https://gorm.io/), [Google Wire](https://github.com/google/wire), PostgreSQL, WebSocket |
-| **Frontend**     | Vanilla JavaScript (ES6+), HTML5, CSS3                         |
-| **Deployment**   | Docker, Docker Compose                                         |
+| Component         | Technology                                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| **Backend**       | Go, [Fiber v2](https://gofiber.io/), [GORM](https://gorm.io/), [Google Wire](https://github.com/google/wire), PostgreSQL, WebSocket |
+| **Frontend**      | Vanilla JavaScript (ES6+), HTML5, CSS3                                                                                              |
+| **Deployment**    | Docker, Docker Compose                                                                                                              |
+| **Cloud Storage** | [Cloudinary](https://cloudinary.com/) for image uploads and CDN delivery                                                            |
 
-## 🏗️ Arsitektur
+---
 
-Aplikasi ini menggunakan arsitektur berlapis (Layered Architecture) untuk memastikan kode yang bersih, modular, dan mudah dipelihara.
+## 📱 Mobile Frontend
+
+> This project is compatible with a Flutter-based mobile frontend available here:
+
+**🔗 [Flutter Chat App Repository](https://github.com/Kirara02/Flutter-ChatApp.git)**
+
+---
+
+## 🧱 Architecture
+
+This project follows a **layered architecture** to ensure clean separation of concerns and maintainability:
 
 ```
-+----------------+      +----------------+      +------------------+      +----------+
-|     Client     |----->|     Handler    |----->|      Service     |----->| Repository |
-| (JS/WebSocket) |      | (Validation)   |      | (Business Logic) |      | (Database) |
-+----------------+      +----------------+      +------------------+      +----------+
++----------------+      +----------------+      +------------------+      +-------------+
+|     Client     |----->|     Handler    |----->|      Service     |----->| Repository  |
+| (JS/WebSocket) |      | (Validation)   |      | (Business Logic) |      | (Database)  |
++----------------+      +----------------+      +------------------+      +-------------+
 ```
 
-- **Handler**: Menerima permintaan HTTP & WebSocket, melakukan validasi input.
-- **Service**: Mengandung semua logika bisnis aplikasi.
-- **Repository**: Bertanggung jawab atas semua komunikasi dengan database.
-- **Dependency Injection**: [Google Wire](https://github.com/google/wire) digunakan untuk mengelola dependensi secara otomatis.
+- **Handler:** Receives HTTP/WebSocket requests and performs validation.
+- **Service:** Contains application business logic.
+- **Repository:** Handles communication with the database.
+- **Dependency Injection:** Managed via [Google Wire](https://github.com/google/wire).
 
-## 🏁 Memulai Proyek (Getting Started)
+---
 
-### Prasyarat
+## ☁️ Cloudinary Integration
 
-- [Go](https://golang.org/dl/) (versi 1.24+)
+This project uses **Cloudinary** for hosting and delivering profile images with CDN support.
+
+### Why Cloudinary?
+
+- Automatic image optimization and resizing
+- High availability via CDN
+- Public ID–based upload and retrieval
+- Built-in image foldering (e.g., `go-chat-app/profiles`)
+
+### Required `.env` Configuration
+
+```env
+# Cloudinary Configuration
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+CLOUDINARY_BASE_FOLDER=go-chat-app
+```
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- [Go](https://golang.org/dl/) (v1.24+)
 - [Docker](https://www.docker.com/get-started) & [Docker Compose](https://docs.docker.com/compose/install/)
 
 ---
 
-### Metode 1: Menggunakan Docker (Direkomendasikan)
+### Method 1: Using Docker (Recommended)
 
-Cara termudah untuk menjalankan aplikasi secara lokal.
+```bash
+# Clone the repository
+git clone https://github.com/your-username/go-fiber-chatapp.git
+cd go-fiber-chatapp
 
-1.  **Clone repositori:**
-    ```bash
-    git clone https://github.com/your-username/go-fiber-chatapp.git
-    cd go-fiber-chatapp
-    ```
+# Create a .env file
+cp .env.example .env
+# Fill in your database, JWT, and Cloudinary credentials
 
-2.  **Buat file `.env`:**
-    Buat file `.env` di direktori root proyek. Anda bisa menyalin dari contoh di bawah. Password `POSTGRES_PASSWORD` di sini harus sama dengan yang ada di `docker-compose.yml`.
+# Build and run
+docker-compose up --build
+```
 
-    ```env
-    # App Config
-    APP_PORT=8080
-
-    # Database Config (used by Go app to connect to Docker container)
-    DB_HOST=db
-    DB_USER=postgres
-    DB_PASSWORD=your_super_secret_password # Ganti dengan password yang aman
-    DB_NAME=chat_app_db
-    DB_PORT=5432
-    DB_SSLMODE=disable
-
-    # JWT Config
-    JWT_SECRET=your_jwt_secret_key # Ganti dengan secret yang kuat
-    ACCESS_TOKEN_EXP_DAYS=1
-    REFRESH_TOKEN_EXP_DAYS=7
-    ```
-
-3.  **Jalankan dengan Docker Compose:**
-    Perintah ini akan membangun image dan menjalankan container untuk aplikasi Go dan database PostgreSQL.
-    ```bash
-    docker-compose up --build
-    ```
-    Aplikasi akan dapat diakses di `http://localhost:8080`.
+Access the app at [http://localhost:8080](http://localhost:8080)
 
 ---
 
-### Metode 2: Setup Manual
+### Method 2: Manual Setup (Without Docker)
 
-Gunakan metode ini jika Anda tidak ingin menggunakan Docker.
+1. Clone the repo and set up `.env` as shown above.
+2. Make sure PostgreSQL is running and create the necessary database.
+3. Install Go dependencies:
 
-1.  **Clone repositori** (lihat langkah di atas).
+```bash
+go mod tidy
+```
 
-2.  **Pastikan PostgreSQL berjalan** di sistem Anda dan Anda memiliki database yang telah dibuat.
+4. Generate Dependency Injection files:
 
-3.  **Buat file `.env`:**
-    Gunakan contoh di atas, tetapi sesuaikan `DB_HOST`, `DB_PORT`, `DB_USER`, dan `DB_PASSWORD` dengan konfigurasi PostgreSQL lokal Anda. Umumnya `DB_HOST` akan menjadi `localhost`.
+```bash
+go generate ./...
+```
 
-4.  **Install dependensi Go:**
-    ```bash
-    go mod tidy
-    ```
+5. Run the app:
 
-5.  **Generate kode Dependency Injection:**
-    Perintah ini wajib dijalankan untuk membuat file `wire_gen.go`.
-    ```bash
-    go generate ./...
-    ```
+```bash
+go run .
+```
 
-6.  **Jalankan aplikasi:**
-    ```bash
-    go run .
-    ```
-    Server akan berjalan di `http://localhost:8080`. GORM akan otomatis membuat skema tabel saat aplikasi pertama kali dijalankan.
+---
 
-## ↔️ Endpoint API
+## 🔌 API Endpoints
 
-| Method | Endpoint             | Deskripsi                                                |
-| ------ | -------------------- | -------------------------------------------------------- |
-| `POST` | `/api/auth/register` | Mendaftarkan pengguna baru.                              |
-| `POST` | `/api/auth/login`    | Login dan mendapatkan token JWT.                         |
-| `POST` | `/api/auth/logout`   | Logout (menambahkan token ke daftar hitam).              |
-| `POST` | `/api/auth/refresh`  | Mendapatkan access token baru.                           |
-| `GET`  | `/api/profile`       | Mendapatkan profil pengguna yang sedang login.           |
-| `PUT`  | `/api/profile`       | Memperbarui profil pengguna.                             |
-| `GET`  | `/api/users`         | Mendapatkan daftar semua pengguna.                       |
-| `GET`  | `/api/rooms`         | Mendapatkan daftar room yang diikuti pengguna.           |
-| `POST` | `/api/rooms`         | Membuat room baru (DM atau Grup).                        |
-| `GET`  | `/chat/ws/:roomId`   | Endpoint untuk koneksi WebSocket ke sebuah room.         |
+| Method | Endpoint             | Description                           |
+| ------ | -------------------- | ------------------------------------- |
+| POST   | `/api/auth/register` | Register a new user                   |
+| POST   | `/api/auth/login`    | Login and get access + refresh tokens |
+| POST   | `/api/auth/logout`   | Invalidate refresh token              |
+| POST   | `/api/auth/refresh`  | Refresh access token                  |
+| GET    | `/api/profile`       | Get current user's profile            |
+| PUT    | `/api/profile`       | Update current user's profile         |
+| GET    | `/api/users`         | List all users                        |
+| GET    | `/api/rooms`         | List rooms joined by user             |
+| POST   | `/api/rooms`         | Create a new room (group or DM)       |
+| GET    | `/chat/ws/:roomId`   | WebSocket endpoint for a room         |
 
-## 🗺️ Rencana Pengembangan (Roadmap)
+---
 
-- [ ] Status Online/Offline pengguna.
-- [ ] Indikator "Sedang Mengetik..."
-- [ ] Penambahan Unit Test & Integration Test.
-- [ ] Fitur manajemen grup (undang/keluarkan anggota).
-- [ ] Kemampuan mengunggah file atau gambar.
+## 🛣️ Roadmap
 
-## 📄 Lisensi
+- [ ] Online/Offline user status
+- [ ] Typing indicators
+- [ ] Unit and integration tests
+- [ ] Group management (invite/kick)
+- [ ] File and image attachments in chat
 
-Proyek ini dilisensikan di bawah [Lisensi MIT](LICENSE).
+---
+
+## 📄 License
+
+This project is licensed under the [MIT License](LICENSE).
