@@ -138,6 +138,30 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	})
 }
 
+func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
+	userIDLocals := c.Locals("user_id")
+	if userIDLocals == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "User ID tidak ditemukan")
+	}
+	userID, _ := userIDLocals.(float64)
+
+	var req dto.ChangePasswordRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Request body tidak valid")
+	}
+	
+	// Panggil service yang baru
+	if err := h.authService.ChangePassword(uint(userID), req); err != nil {
+		// Kembalikan status 'Forbidden' jika password lama salah
+		return fiber.NewError(fiber.StatusForbidden, err.Error())
+	}
+
+	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
+		Success: true,
+		Message: "Password berhasil diperbarui",
+	})
+}
+
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {

@@ -10,28 +10,36 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBPort     string
-	JWTSecret  string
-	AccessTokenExpDays  int
-	RefreshTokenExpDays int
+	DBHost               string
+	DBUser               string
+	DBPassword           string
+	DBName               string
+	DBPort               string
+	JWTSecret            string
+	AccessTokenExpDays   int
+	RefreshTokenExpDays  int
+	CloudinaryCloudName  string
+	CloudinaryAPIKey     string
+	CloudinaryAPISecret  string
+	CloudinaryBaseFolder string
 }
 
 func New() *Config {
 	accessTokenExp, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_EXP_DAYS", "1"))     
 	refreshTokenExp, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_EXP_DAYS", "7")) 
 	return &Config{
-		DBHost:     getEnv("DB_HOST", "db"),
-		DBUser:     getEnv("DB_USER", "user"),
-		DBPassword: getEnv("DB_PASSWORD", "satudua"),
-		DBName:     getEnv("DB_NAME", "chat_app_db"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		JWTSecret:  getEnv("JWT_SECRET", "kirarabernstein"),
-		AccessTokenExpDays:  accessTokenExp,
-		RefreshTokenExpDays: refreshTokenExp,
+		DBHost:               getEnv("DB_HOST", "db"),
+		DBUser:               getEnv("DB_USER", "user"),
+		DBPassword:           getEnv("DB_PASSWORD", "satudua"),
+		DBName:               getEnv("DB_NAME", "chat_app_db"),
+		DBPort:               getEnv("DB_PORT", "5432"),
+		JWTSecret:            getEnv("JWT_SECRET", "kirarabernstein"),
+		AccessTokenExpDays:   accessTokenExp,
+		RefreshTokenExpDays:  refreshTokenExp,
+		CloudinaryCloudName:  getEnv("CLOUDINARY_CLOUD_NAME", ""),
+		CloudinaryAPIKey:     getEnv("CLOUDINARY_API_KEY", ""),
+		CloudinaryAPISecret:  getEnv("CLOUDINARY_API_SECRET", ""),
+		CloudinaryBaseFolder: getEnv("CLOUDINARY_BASE_FOLDER", "chat-app"),
 	}
 }
 

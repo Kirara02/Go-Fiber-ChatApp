@@ -17,6 +17,7 @@ type AuthService interface {
 	Register(req *dto.RegisterRequest) (*domain.User, error)
 	Login(req *dto.LoginRequest) (accessToken string, refreshToken string, user *domain.User, err error)
 	RefreshToken(req *dto.RefreshTokenRequest) (newAccessToken string, newRefreshToken string, err error)
+	ChangePassword(userID uint, req dto.ChangePasswordRequest) error
 	Logout(tokenString string) error
 }
 
@@ -109,6 +110,30 @@ func (s *authService) RefreshToken(req *dto.RefreshTokenRequest) (string, string
 	}
 
 	return newAccessToken, newRefreshToken, nil
+}
+
+func (s *authService) ChangePassword(userID uint, req dto.ChangePasswordRequest) error {
+	// 1. Ambil data pengguna saat ini
+	user, err := s.userRepo.GetUserByID(userID)
+	if err != nil {
+		return errors.New("pengguna tidak ditemukan")
+	}
+
+	// 2. Verifikasi password lama (langkah keamanan krusial)
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword)); err != nil {
+		// Jika tidak cocok, kembalikan error. Jangan beri tahu penyerang mana yang salah.
+		return errors.New("password lama tidak valid")
+	}
+
+	// 3. Hash password baru
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+
+	// 4. Perbarui field password dan simpan
+	user.Password = string(hashedPassword)
+	return s.userRepo.UpdateUser(user)
 }
 
 func (s *authService) Logout(tokenString string) error {

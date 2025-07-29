@@ -94,9 +94,23 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "ID pengguna tidak valid")
 	}
 
-	var req dto.UpdateUserRequest
-	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Request body tidak valid")
+	form, err := c.MultipartForm()
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Request form tidak valid")
+	}
+
+	req := dto.UpdateUserRequest{}
+
+	if names := form.Value["name"]; len(names) > 0 {
+		req.Name = &names[0]
+	}
+
+	if emails := form.Value["email"]; len(emails) > 0 {
+		req.Email = &emails[0]
+	}
+
+	if files := form.File["avatar"]; len(files) > 0 {
+		req.ProfileImage = files[0]
 	}
 
 	updatedUser, err := h.userService.UpdateUser(uint(id), req)
@@ -185,6 +199,38 @@ func (h *UserHandler) UpdateMyProfile(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
 		Success: true,
 		Message: "Profil berhasil diperbarui",
+		Data:    updatedUser,
+	})
+}
+
+func (h *UserHandler) UpdateMyProfileImage(c *fiber.Ctx) error {
+	// 1. Ambil ID pengguna dari token (sama seperti di UpdateMyProfile)
+	userIDLocals := c.Locals("user_id")
+	if userIDLocals == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+	}
+	userID, ok := userIDLocals.(float64)
+	if !ok {
+		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid di context")
+	}
+
+	// 2. Ambil file dari form request.
+	file, err := c.FormFile("avatar") // Kita gunakan nama "avatar" untuk field form
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "File avatar tidak ditemukan di request")
+	}
+
+	// 3. Panggil service untuk menjalankan seluruh alur kerja.
+	updatedUser, err := h.userService.UpdateUserProfileImage(uint(userID), file)
+	if err != nil {
+		// Service akan mengembalikan error yang relevan.
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+	
+	// 4. Kembalikan data pengguna yang sudah diperbarui.
+	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
+		Success: true,
+		Message: "Gambar profil berhasil diperbarui",
 		Data:    updatedUser,
 	})
 }

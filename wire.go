@@ -28,6 +28,7 @@ var serviceSet = wire.NewSet(
 	services.NewAuthService,
 	services.NewUserService,
 	services.NewRoomService,
+	services.NewUploadService,
 )
 
 var handlerSet = wire.NewSet(
@@ -35,6 +36,7 @@ var handlerSet = wire.NewSet(
 	handlers.NewChatHandler,
 	handlers.NewUserHandler,
 	handlers.NewRoomHandler,
+	handlers.NewUploadHandler,
 )
 
 

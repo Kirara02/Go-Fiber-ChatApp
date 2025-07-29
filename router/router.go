@@ -18,6 +18,7 @@ func NewRouter(
 	authHandler *handlers.AuthHandler,
 	userHandler *handlers.UserHandler,
 	roomHandler *handlers.RoomHandler,
+	uploadHandler *handlers.UploadHandler,
 	tokenRepo repository.TokenRepository,
 	cfg *config.Config,
 ) *fiber.App {
@@ -54,7 +55,7 @@ func NewRouter(
 	authRoute.Post("/login", authHandler.Login)
 	authRoute.Post("/refresh", authHandler.RefreshToken)
 	authRoute.Post("/logout", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.Logout)
-
+	authRoute.Put("/change-password", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.ChangePassword) 
 
 	// Route with authentication
 	auth := middleware.AuthMiddleware(cfg, tokenRepo)
@@ -62,6 +63,9 @@ func NewRouter(
 
 	api.Get("/profile", userHandler.GetMyProfile)
     api.Put("/profile", userHandler.UpdateMyProfile)
+	api.Put("/profile/avatar", userHandler.UpdateMyProfileImage)
+
+	api.Post("/upload", uploadHandler.UploadImage)
 
 	userRoutes := api.Group("/users")
     userRoutes.Post("/", userHandler.CreateUser)

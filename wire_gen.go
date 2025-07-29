@@ -30,10 +30,12 @@ func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) *fiber.A
 	jwtService := services.NewJWTService(cfg)
 	authService := services.NewAuthService(userRepository, tokenRepository, jwtService)
 	authHandler := handlers.NewAuthHandler(authService)
-	userService := services.NewUserService(userRepository)
+	uploadService := services.NewUploadService(cfg)
+	userService := services.NewUserService(userRepository, uploadService)
 	userHandler := handlers.NewUserHandler(userService)
 	roomHandler := handlers.NewRoomHandler(roomService)
-	app := router.NewRouter(chatHandler, authHandler, userHandler, roomHandler, tokenRepository, cfg)
+	uploadHandler := handlers.NewUploadHandler(uploadService)
+	app := router.NewRouter(chatHandler, authHandler, userHandler, roomHandler, uploadHandler, tokenRepository, cfg)
 	return app
 }
 
@@ -41,6 +43,6 @@ func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) *fiber.A
 
 var repositorySet = wire.NewSet(repository.NewUserRepository, repository.NewTokenRepository, repository.NewRoomRepository, repository.NewChatRepository)
 
-var serviceSet = wire.NewSet(services.NewJWTService, services.NewAuthService, services.NewUserService, services.NewRoomService)
+var serviceSet = wire.NewSet(services.NewJWTService, services.NewAuthService, services.NewUserService, services.NewRoomService, services.NewUploadService)
 
-var handlerSet = wire.NewSet(handlers.NewAuthHandler, handlers.NewChatHandler, handlers.NewUserHandler, handlers.NewRoomHandler)
+var handlerSet = wire.NewSet(handlers.NewAuthHandler, handlers.NewChatHandler, handlers.NewUserHandler, handlers.NewRoomHandler, handlers.NewUploadHandler)

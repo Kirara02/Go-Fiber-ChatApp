@@ -2,6 +2,7 @@ package dto
 
 import (
 	"main/domain"
+	"mime/multipart"
 	"time"
 )
 
@@ -12,26 +13,28 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Name     *string `json:"name,omitempty"`
-	Email    *string `json:"email,omitempty"`
-	Password *string `json:"password,omitempty"`
+	Name         *string                `json:"name,omitempty"`
+	Email        *string                `json:"email,omitempty"`
+	ProfileImage *multipart.FileHeader  `form:"avatar"`
 }
 
 type UserResponse struct {
-	ID        uint      `json:"id"`
-	Name      string    `json:"name"`
-	Email     string    `json:"email"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID           uint      `json:"id"`
+	Name         string    `json:"name"`
+	Email        string    `json:"email"`
+	ProfileImage *string   `json:"profile_image"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 func ToUserResponse(user *domain.User) UserResponse {
 	return UserResponse{
-		ID:        user.ID,
-		Name:      user.Name,
-		Email:     user.Email,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
+		ID:           user.ID,
+		Name:         user.Name,
+		Email:        user.Email,
+		ProfileImage: user.ProfileImage,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
 	}
 }
 
