@@ -35,7 +35,6 @@ func NewAuthService(userRepo repository.UserRepository, tokenRepo repository.Tok
 	}
 }
 
-
 func (s *authService) Register(req *dto.RegisterRequest) (*domain.User, error) {
 	_, err := s.userRepo.GetUserByEmail(req.Email)
 	if err == nil {
@@ -80,7 +79,6 @@ func (s *authService) Login(req *dto.LoginRequest) (string, string, *domain.User
 
 	return accessToken, refreshToken, user, nil
 }
-
 
 func (s *authService) RefreshToken(req *dto.RefreshTokenRequest) (string, string, error) {
 	token, err := s.jwtService.ValidateRefreshToken(req.RefreshToken)

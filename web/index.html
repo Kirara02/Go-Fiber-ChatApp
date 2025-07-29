@@ -766,14 +766,14 @@
           }
         });
 
-        logoutBtnLobby.addEventListener("click", async ()  => {
+        logoutBtnLobby.addEventListener("click", async () => {
           try {
             await fetch("/api/auth/logout", {
               method: "POST",
-              headers: { Authorization: `Bearer ${currentToken}` }
+              headers: { Authorization: `Bearer ${currentToken}` },
             });
           } catch (e) {
-            console.error(e); 
+            console.error(e);
           }
 
           if (socket && socket.readyState === WebSocket.OPEN) {
@@ -848,7 +848,7 @@
         function enterChatRoom(room) {
           showScreen("chat-container");
           const displayName = getDisplayNameForRoom(room);
-          const isDM = room.is_private && room.is_group === false
+          const isDM = room.is_private && room.is_group === false;
           const avatarUrl = generateAvatarUrl(displayName);
 
           // --- Atur header chat dengan informasi baru ---
@@ -929,7 +929,11 @@
 
           socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
-            if (data.type === "error" && (data.message === "Token expired" || data.message === "Unauthorized")) {
+            if (
+              data.type === "error" &&
+              (data.message === "Token expired" ||
+                data.message === "Unauthorized")
+            ) {
               handleTokenExpired();
               socket.close();
               return;

@@ -1,14 +1,14 @@
 package websocket
 
 import (
-	"main/repository"
 	"log"
+	"main/repository"
 	"sync"
 )
 
 type Hub struct {
 	rooms map[string]*Room
-	
+
 	mu sync.RWMutex
 }
 
@@ -36,11 +36,11 @@ func (h *Hub) GetOrCreateRoom(roomID string, chatRepo repository.ChatRepository)
 
 // Anda bisa menambahkan fungsi untuk membersihkan room yang kosong
 func (h *Hub) removeRoomIfEmpty(room *Room) {
-    h.mu.Lock()
-    defer h.mu.Unlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
-    if len(room.clients) == 0 {
-        delete(h.rooms, room.ID)
-        log.Printf("Room %s dihapus karena kosong.", room.ID)
-    }
+	if len(room.clients) == 0 {
+		delete(h.rooms, room.ID)
+		log.Printf("Room %s dihapus karena kosong.", room.ID)
+	}
 }

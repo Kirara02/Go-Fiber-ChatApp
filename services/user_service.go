@@ -13,7 +13,6 @@ import (
 	"gorm.io/gorm"
 )
 
-
 type UserService interface {
 	CreateUser(req dto.CreateUserRequest) (*dto.UserResponse, error)
 	GetUserByID(id uint) (*dto.UserResponse, error)
@@ -24,7 +23,7 @@ type UserService interface {
 }
 
 type userService struct {
-	userRepo repository.UserRepository
+	userRepo      repository.UserRepository
 	uploadService UploadService
 }
 
@@ -107,7 +106,7 @@ func (s *userService) UpdateUser(id uint, req dto.UpdateUserRequest) (*dto.UserR
 			oldPublicID := utils.ExtractPublicIDFromURL(*userToUpdate.ProfileImage)
 			_ = s.uploadService.DeleteFile(oldPublicID)
 		}
-		
+
 		safeName := utils.SanitizeFilename(userToUpdate.Name)
 		publicID := fmt.Sprintf("%s_%d", safeName, id)
 
@@ -117,7 +116,7 @@ func (s *userService) UpdateUser(id uint, req dto.UpdateUserRequest) (*dto.UserR
 		}
 		userToUpdate.ProfileImage = &imageUrl
 	}
-	
+
 	if err := s.userRepo.UpdateUser(userToUpdate); err != nil {
 		return nil, err
 	}
@@ -157,7 +156,6 @@ func (s *userService) UpdateUserProfileImage(id uint, file *multipart.FileHeader
 	response := dto.ToUserResponse(user)
 	return &response, nil
 }
-
 
 func (s *userService) DeleteUser(id uint) error {
 	_, err := s.userRepo.GetUserByID(id)

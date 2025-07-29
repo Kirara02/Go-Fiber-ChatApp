@@ -226,7 +226,7 @@ func (h *UserHandler) UpdateMyProfileImage(c *fiber.Ctx) error {
 		// Service akan mengembalikan error yang relevan.
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
-	
+
 	// 4. Kembalikan data pengguna yang sudah diperbarui.
 	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
 		Success: true,

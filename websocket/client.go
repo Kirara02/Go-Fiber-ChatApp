@@ -42,7 +42,7 @@ func (c *Client) ReadPump() {
 			}
 			break
 		}
-		
+
 		roomIDUint, _ := strconv.ParseUint(c.room.ID, 10, 32)
 
 		chatMessageDTO := dto.ChatMessageResponse{
@@ -53,15 +53,15 @@ func (c *Client) ReadPump() {
 			RoomID:     uint(roomIDUint),
 			CreatedAt:  time.Now(),
 		}
-		
+
 		jsonMessage, err := json.Marshal(chatMessageDTO)
 		if err != nil {
 			log.Println("Error marshal real-time chat message DTO:", err)
 			continue
 		}
-		
+
 		c.room.broadcast <- BroadcastMessage{
-			Sender:  c, 
+			Sender:  c,
 			Payload: jsonMessage,
 		}
 	}

@@ -28,7 +28,7 @@ func (h *UploadHandler) UploadImage(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Gagal mengunggah file")
 	}
-	
+
 	// 3. Kirim kembali URL gambar sebagai respons.
 	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
 		Success: true,

@@ -38,7 +38,7 @@ func AuthMiddleware(cfg *config.Config, tokenRepo repository.TokenRepository) fi
 				Success: false, Message: "Token invalid",
 			})
 		}
-		
+
 		// Proses validasi JWT berjalan seperti biasa.
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -60,7 +60,7 @@ func AuthMiddleware(cfg *config.Config, tokenRepo repository.TokenRepository) fi
 		claims := token.Claims.(jwt.MapClaims)
 		c.Locals("user_id", claims["user_id"])
 		c.Locals("user_name", claims["name"])
-		
+
 		return c.Next()
 	}
 }

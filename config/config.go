@@ -25,8 +25,8 @@ type Config struct {
 }
 
 func New() *Config {
-	accessTokenExp, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_EXP_DAYS", "1"))     
-	refreshTokenExp, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_EXP_DAYS", "7")) 
+	accessTokenExp, _ := strconv.Atoi(getEnv("ACCESS_TOKEN_EXP_DAYS", "1"))
+	refreshTokenExp, _ := strconv.Atoi(getEnv("REFRESH_TOKEN_EXP_DAYS", "7"))
 	return &Config{
 		DBHost:               getEnv("DB_HOST", "db"),
 		DBUser:               getEnv("DB_USER", "user"),

@@ -8,6 +8,7 @@ import (
 
 type InvalidatedToken struct {
 	gorm.Model
+
 	Token     string    `gorm:"unique;not null;index"`
 	ExpiresAt time.Time `gorm:"not null"`
 }

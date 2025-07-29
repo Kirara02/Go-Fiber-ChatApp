@@ -10,7 +10,6 @@ import (
 	"github.com/cloudinary/cloudinary-go/v2/api/uploader"
 )
 
-
 type UploadService interface {
 	UploadFile(file *multipart.FileHeader, subfolder string, publicID string) (string, error)
 	DeleteFile(publicID string) error

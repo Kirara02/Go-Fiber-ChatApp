@@ -50,11 +50,11 @@ func (r *roomRepository) CreateRoom(room *domain.Room, memberIDs []uint) (*domai
 		tx.Rollback()
 		return nil, err
 	}
-	
+
 	if err := tx.Commit().Error; err != nil {
 		return nil, err
 	}
-	
+
 	err := r.db.Preload("Users").First(room, room.ID).Error
 	return room, err
 }
@@ -72,8 +72,8 @@ func (r *roomRepository) GetUserRoomsWithDetails(userID uint) ([]*domain.Room, e
 	if err := r.db.Preload("Rooms.Users").First(&user, userID).Error; err != nil {
 		return nil, err
 	}
-	if len(user.Rooms) == 0 { 
-		return []*domain.Room{}, nil 
+	if len(user.Rooms) == 0 {
+		return []*domain.Room{}, nil
 	}
 
 	var roomIDs []uint
@@ -104,7 +104,7 @@ func (r *roomRepository) GetUserRoomsWithDetails(userID uint) ([]*domain.Room, e
 
 func (r *roomRepository) GetSimpleUserRooms(userID uint) ([]*domain.Room, error) {
 	var user domain.User
-	
+
 	err := r.db.
 		Preload("Rooms", func(db *gorm.DB) *gorm.DB {
 			return db.Order("rooms.created_at DESC")
@@ -115,7 +115,7 @@ func (r *roomRepository) GetSimpleUserRooms(userID uint) ([]*domain.Room, error)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return user.Rooms, nil
 }
 
@@ -138,7 +138,7 @@ func (r *roomRepository) FindPrivateRoomByMembers(memberIDs []uint) (*domain.Roo
 	//    - Query utama mencari room berdasarkan ID yang ditemukan di subquery, dan memastikan itu adalah room privat.
 	// 3. `HAVING (SELECT COUNT(*) FROM user_rooms WHERE room_id = rooms.id) = ?`
 	//    - Ini adalah lapisan verifikasi kedua untuk memastikan room tersebut tidak memiliki anggota lain selain yang kita cari.
-	
+
 	err := r.db.Joins("JOIN user_rooms ur ON ur.room_id = rooms.id").
 		Where("rooms.is_private = ?", true).
 		Where("ur.user_id IN ?", memberIDs).
@@ -147,10 +147,10 @@ func (r *roomRepository) FindPrivateRoomByMembers(memberIDs []uint) (*domain.Roo
 		Having("(SELECT COUNT(*) FROM user_rooms WHERE room_id = rooms.id) = ?", len(memberIDs)).
 		Preload("Users").
 		First(&room).Error
-	
+
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, nil
 	}
-	
+
 	return &room, err
 }

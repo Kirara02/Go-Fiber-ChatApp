@@ -79,12 +79,12 @@ func (h *ChatHandler) HandleWebSocket(c *ws.Conn) {
 		for _, msg := range history {
 			messageResponses = append(messageResponses, dto.ToChatMessageResponse(&msg))
 		}
-		
+
 		historyResponse := dto.ChatHistoryResponse{
 			Type:     "history",
 			Messages: messageResponses,
 		}
-		
+
 		jsonHistory, err := json.Marshal(historyResponse)
 		if err == nil {
 			client.Send <- jsonHistory
@@ -94,6 +94,6 @@ func (h *ChatHandler) HandleWebSocket(c *ws.Conn) {
 	room.Register <- client
 
 	go client.WritePump()
-	
+
 	client.ReadPump()
 }

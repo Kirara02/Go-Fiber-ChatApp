@@ -9,6 +9,7 @@ import (
 	"main/utils"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	ws "github.com/gofiber/websocket/v2"
 )
@@ -45,35 +46,40 @@ func NewRouter(
 	})
 
 	app.Use(logger.New())
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH,OPTIONS",
+		AllowHeaders: "*",
+	}))
 	app.Static("/", "./web")
 
 	api := app.Group("/api")
 
 	// "/auth" Route
-	authRoute := api.Group("/auth");
+	authRoute := api.Group("/auth")
 	authRoute.Post("/register", authHandler.Register)
 	authRoute.Post("/login", authHandler.Login)
 	authRoute.Post("/refresh", authHandler.RefreshToken)
 	authRoute.Post("/logout", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.Logout)
-	authRoute.Put("/change-password", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.ChangePassword) 
+	authRoute.Put("/change-password", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.ChangePassword)
 
 	// Route with authentication
 	auth := middleware.AuthMiddleware(cfg, tokenRepo)
 	api.Use(auth)
 
 	api.Get("/profile", userHandler.GetMyProfile)
-    api.Put("/profile", userHandler.UpdateMyProfile)
+	api.Put("/profile", userHandler.UpdateMyProfile)
 	api.Put("/profile/avatar", userHandler.UpdateMyProfileImage)
 
 	api.Post("/upload", uploadHandler.UploadImage)
 
 	userRoutes := api.Group("/users")
-    userRoutes.Post("/", userHandler.CreateUser)
-    userRoutes.Get("/", userHandler.GetAllUsers)
-    userRoutes.Get("/:id", userHandler.GetUserByID)
-    userRoutes.Put("/:id", userHandler.UpdateUser)
-    userRoutes.Delete("/:id", userHandler.DeleteUser)
-	
+	userRoutes.Post("/", userHandler.CreateUser)
+	userRoutes.Get("/", userHandler.GetAllUsers)
+	userRoutes.Get("/:id", userHandler.GetUserByID)
+	userRoutes.Put("/:id", userHandler.UpdateUser)
+	userRoutes.Delete("/:id", userHandler.DeleteUser)
+
 	roomRoutes := api.Group("/rooms")
 	roomRoutes.Post("/", roomHandler.CreateRoom)
 	roomRoutes.Get("/", roomHandler.GetMyRooms)

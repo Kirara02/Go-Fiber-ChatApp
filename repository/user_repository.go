@@ -46,11 +46,11 @@ func (r *userRepository) GetUserByID(id uint) (*domain.User, error) {
 
 func (r *userRepository) GetUsersByIDs(ids []uint) ([]*domain.User, error) {
 	var users []*domain.User
-	
+
 	if err := r.db.Where("id IN ?", ids).Find(&users).Error; err != nil {
 		return nil, err
 	}
-	
+
 	return users, nil
 }
 
@@ -58,11 +58,11 @@ func (r *userRepository) GetAllUsers(keyword string, currentUserID uint, include
 	var users []*domain.User
 
 	db := r.db
-	
+
 	if !includeSelf {
 		db = db.Where("id != ?", currentUserID)
 	}
-	
+
 	if keyword != "" {
 		searchQuery := "%" + keyword + "%"
 		db = db.Where("name ILIKE ?", searchQuery)

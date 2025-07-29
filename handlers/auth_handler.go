@@ -52,7 +52,7 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	if err := validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.BaseResponse{
 			Success: false, Message: "Data yang diberikan tidak valid",
-			
+
 			Error: &utils.ErrorResponse{
 				Code:    fiber.StatusBadRequest,
 				Details: formatValidationError(err),
@@ -116,7 +116,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	if err := validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.BaseResponse{
 			Success: false, Message: "Refresh token wajib diisi",
-			Error:   &utils.ErrorResponse{Code: fiber.StatusBadRequest, Details: formatValidationError(err)},
+			Error: &utils.ErrorResponse{Code: fiber.StatusBadRequest, Details: formatValidationError(err)},
 		})
 	}
 
@@ -124,7 +124,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.BaseResponse{
 			Success: false, Message: "Gagal memperbarui token",
-			Error:   &utils.ErrorResponse{Code: fiber.StatusUnauthorized, Details: err.Error()},
+			Error: &utils.ErrorResponse{Code: fiber.StatusUnauthorized, Details: err.Error()},
 		})
 	}
 
@@ -149,7 +149,7 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Request body tidak valid")
 	}
-	
+
 	// Panggil service yang baru
 	if err := h.authService.ChangePassword(uint(userID), req); err != nil {
 		// Kembalikan status 'Forbidden' jika password lama salah
@@ -181,7 +181,7 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(utils.BaseResponse{
 			Success: false, Message: "Gagal melakukan logout",
-			Error:   &utils.ErrorResponse{Code: fiber.StatusInternalServerError, Details: err.Error()},
+			Error: &utils.ErrorResponse{Code: fiber.StatusInternalServerError, Details: err.Error()},
 		})
 	}
 

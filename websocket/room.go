@@ -28,7 +28,7 @@ func NewRoom(id string, chatRepo repository.ChatRepository, hub *Hub) *Room {
 		ID:         id,
 		clients:    make(map[*Client]bool),
 		broadcast:  make(chan BroadcastMessage),
-		Register:   make(chan *Client), 
+		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
 		chatRepo:   chatRepo,
 		hub:        hub,
@@ -53,19 +53,19 @@ func (r *Room) Run() {
 			}
 
 		case message := <-r.broadcast:
-			
+
 			var dbMessage domain.ChatMessage
-			
+
 			if err := json.Unmarshal(message.Payload, &dbMessage); err != nil {
 				log.Printf("Error unmarshal pesan untuk DB: %v", err)
 				continue
 			}
 
 			dbMessage.UserID = message.Sender.UserID
-			
+
 			roomIDUint, _ := strconv.ParseUint(r.ID, 10, 32)
 			dbMessage.RoomID = uint(roomIDUint)
-			
+
 			if err := r.chatRepo.CreateMessage(&dbMessage); err != nil {
 				log.Printf("Gagal menyimpan pesan ke DB: %v", err)
 			}
@@ -74,7 +74,7 @@ func (r *Room) Run() {
 
 			for client := range r.clients {
 				select {
-					case client.Send <- message.Payload:
+				case client.Send <- message.Payload:
 					// --- LOGGING TAMBAHAN ---
 					log.Printf("Pesan berhasil dikirim ke channel client %s.", client.UserName)
 				default:

@@ -10,21 +10,21 @@ import (
 )
 
 type JWTService interface {
-    GenerateTokens(user *domain.User) (accessToken string, refreshToken string, err error)
-    GenerateAccessToken(user *domain.User) (string, error)
-    ValidateRefreshToken(tokenString string) (*jwt.Token, error)
+	GenerateTokens(user *domain.User) (accessToken string, refreshToken string, err error)
+	GenerateAccessToken(user *domain.User) (string, error)
+	ValidateRefreshToken(tokenString string) (*jwt.Token, error)
 }
 
 type jwtService struct {
-    cfg *config.Config
+	cfg *config.Config
 }
 
 func NewJWTService(cfg *config.Config) JWTService {
-    return &jwtService{cfg: cfg}
+	return &jwtService{cfg: cfg}
 }
 
 func (s *jwtService) GenerateTokens(user *domain.User) (accessToken string, refreshToken string, err error) {
-	
+
 	accessToken, err = s.GenerateAccessToken(user)
 	if err != nil {
 		return "", "", err
@@ -66,7 +66,7 @@ func (s *jwtService) GenerateAccessToken(user *domain.User) (string, error) {
 
 func (s *jwtService) ValidateRefreshToken(tokenString string) (*jwt.Token, error) {
 	return jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		
+
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, errors.New("unexpected signing method")
 		}

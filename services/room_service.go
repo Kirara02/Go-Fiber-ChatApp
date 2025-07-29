@@ -37,7 +37,7 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 	if len(memberIDs) < 2 {
 		return nil, errors.New("sebuah room membutuhkan minimal 2 anggota")
 	}
-	
+
 	if len(memberIDs) == 2 {
 		existingRoom, err := s.roomRepo.FindPrivateRoomByMembers(memberIDs)
 		if err != nil {
@@ -52,7 +52,7 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 	if err != nil || len(members) != len(memberIDs) {
 		return nil, errors.New("satu atau lebih ID pengguna tidak valid")
 	}
-	
+
 	newRoom := &domain.Room{
 		Name: req.Name,
 	}
@@ -62,31 +62,30 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 		if req.Name == "" {
 			return nil, errors.New("nama grup wajib diisi untuk room dengan lebih dari 2 anggota")
 		}
-		newRoom.OwnerID = &creatorID 
+		newRoom.OwnerID = &creatorID
 	} else {
 		// DIRECT MESSAGE (DM)
 		newRoom.IsPrivate = true
-		
+
 		var names []string
 		for _, member := range members {
 			names = append(names, member.Name)
 		}
 		sort.Strings(names)
-		
+
 		if newRoom.Name == "" {
 			newRoom.Name = strings.Join(names, " & ")
 		}
 	}
-	
+
 	createdRoom, err := s.roomRepo.CreateRoom(newRoom, memberIDs)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	response := dto.ToRoomResponse(createdRoom, creatorID, true)
 	return &response, nil
 }
-
 
 func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) ([]dto.RoomResponse, error) {
 	var rooms []*domain.Room
@@ -96,12 +95,20 @@ func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) 
 		rooms, err = s.roomRepo.GetSimpleUserRooms(userID)
 	} else {
 		rooms, err = s.roomRepo.GetUserRoomsWithDetails(userID)
-		
+
 		if err == nil && len(rooms) > 0 {
 			sort.Slice(rooms, func(i, j int) bool {
 				var timeI, timeJ time.Time
-				if rooms[i].LastMessage.ID != 0 { timeI = rooms[i].LastMessage.CreatedAt } else { timeI = rooms[i].CreatedAt }
-				if rooms[j].LastMessage.ID != 0 { timeJ = rooms[j].LastMessage.CreatedAt } else { timeJ = rooms[j].CreatedAt }
+				if rooms[i].LastMessage.ID != 0 {
+					timeI = rooms[i].LastMessage.CreatedAt
+				} else {
+					timeI = rooms[i].CreatedAt
+				}
+				if rooms[j].LastMessage.ID != 0 {
+					timeJ = rooms[j].LastMessage.CreatedAt
+				} else {
+					timeJ = rooms[j].CreatedAt
+				}
 				return timeI.After(timeJ)
 			})
 		}
@@ -110,7 +117,7 @@ func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) 
 	if err != nil {
 		return nil, err
 	}
-	
+
 	responses := dto.ToRoomResponses(rooms, userID, includeMembers)
 
 	return responses, nil

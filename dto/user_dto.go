@@ -13,9 +13,9 @@ type CreateUserRequest struct {
 }
 
 type UpdateUserRequest struct {
-	Name         *string                `json:"name,omitempty"`
-	Email        *string                `json:"email,omitempty"`
-	ProfileImage *multipart.FileHeader  `form:"avatar"`
+	Name         *string               `json:"name,omitempty"`
+	Email        *string               `json:"email,omitempty"`
+	ProfileImage *multipart.FileHeader `form:"avatar"`
 }
 
 type UserResponse struct {
@@ -40,7 +40,7 @@ func ToUserResponse(user *domain.User) UserResponse {
 
 func ToUserResponses(users []*domain.User) []UserResponse {
 	var userResponses []UserResponse
-	
+
 	if len(users) == 0 {
 		return userResponses
 	}
@@ -48,6 +48,6 @@ func ToUserResponses(users []*domain.User) []UserResponse {
 	for _, u := range users {
 		userResponses = append(userResponses, ToUserResponse(u))
 	}
-	
+
 	return userResponses
 }
