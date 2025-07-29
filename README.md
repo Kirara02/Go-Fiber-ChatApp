@@ -10,11 +10,28 @@ A high-performance, feature-rich real-time chat application built with Go (Fiber
 
 ---
 
-### Replace This Screenshot!
+## 📸 Screenshots
 
-_Update the URL below with your app’s actual screenshot._
+Here are some screenshots from the application:
 
-![App Screenshot](https://via.placeholder.com/800x450.png?text=Your+App+Screenshot)
+<div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: center;">
+
+  <div style="flex: 1 1 300px; text-align: center;">
+    <h4>🔐 Login Screen</h4>
+    <img src="docs/login.png" alt="Login" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+  </div>
+
+  <div style="flex: 1 1 300px; text-align: center;">
+    <h4>💬 Chat Room</h4>
+    <img src="docs/chat_room.png" alt="Chat Room" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+  </div>
+
+  <div style="flex: 1 1 300px; text-align: center;">
+    <h4>🏘️ Rooms List</h4>
+    <img src="docs/rooms.png" alt="Rooms" style="max-width: 100%; border: 1px solid #ccc; border-radius: 8px;">
+  </div>
+
+</div>
 
 ---
 
