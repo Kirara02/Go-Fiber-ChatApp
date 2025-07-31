@@ -15,7 +15,7 @@ type CreateUserRequest struct {
 type UpdateUserRequest struct {
 	Name         *string               `json:"name,omitempty"`
 	Email        *string               `json:"email,omitempty"`
-	ProfileImage *multipart.FileHeader `form:"avatar"`
+	ProfileImage *multipart.FileHeader `form:"profile_image"`
 }
 
 type UserResponse struct {

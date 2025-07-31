@@ -69,7 +69,6 @@ func NewRouter(
 
 	api.Get("/profile", userHandler.GetMyProfile)
 	api.Put("/profile", userHandler.UpdateMyProfile)
-	api.Put("/profile/avatar", userHandler.UpdateMyProfileImage)
 
 	api.Post("/upload", uploadHandler.UploadImage)
 
@@ -83,6 +82,8 @@ func NewRouter(
 	roomRoutes := api.Group("/rooms")
 	roomRoutes.Post("/", roomHandler.CreateRoom)
 	roomRoutes.Get("/", roomHandler.GetMyRooms)
+	roomRoutes.Get("/:id", roomHandler.GetRoomByID)
+	roomRoutes.Put("/:id/image", roomHandler.UpdateRoomImage)
 
 	// WebSocket
 	chatRoutes := app.Group("/chat")

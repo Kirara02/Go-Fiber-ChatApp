@@ -72,3 +72,4 @@ func (s *uploadService) DeleteFile(publicID string) error {
 	})
 	return err
 }
+

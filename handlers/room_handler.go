@@ -4,6 +4,7 @@ import (
 	"main/dto"
 	"main/services"
 	"main/utils"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -65,5 +66,81 @@ func (h *RoomHandler) GetMyRooms(c *fiber.Ctx) error {
 		Success: true,
 		Message: "Daftar room berhasil diambil",
 		Data:    rooms,
+	})
+}
+
+func (h *RoomHandler) GetRoomByID(c *fiber.Ctx) error {
+	roomIDParam, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "ID room tidak valid")
+	}
+	roomID := uint(roomIDParam)
+
+	userIDLocals := c.Locals("user_id")
+	if userIDLocals == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+	}
+	userIDFloat, ok := userIDLocals.(float64)
+	if !ok {
+		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid")
+	}
+	currentUserID := uint(userIDFloat)
+
+	// Ambil room dari service
+	room, err := h.roomService.GetRoomByID(roomID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, err.Error())
+	}
+
+	// Cek apakah user termasuk anggota room
+	isMember, err := h.roomService.IsUserMember(currentUserID, roomID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, "Gagal memverifikasi keanggotaan room")
+	}
+	if !isMember {
+		return fiber.NewError(fiber.StatusForbidden, "Kamu bukan anggota room ini")
+	}
+
+	// Konversi ke response
+	roomResp := dto.ToRoomResponse(room, currentUserID, true)
+
+	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
+		Success: true,
+		Message: "Detail room berhasil diambil",
+		Data:    roomResp,
+	})
+}
+
+func (h *RoomHandler) UpdateRoomImage(c *fiber.Ctx) error {
+	roomIDParam, err := strconv.ParseUint(c.Params("id"), 10, 32)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "ID room tidak valid")
+	}
+	roomID := uint(roomIDParam)
+
+	userIDLocals := c.Locals("user_id")
+	if userIDLocals == nil {
+		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+	}
+	userIDFloat, ok := userIDLocals.(float64)
+	if !ok {
+		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid")
+	}
+	currentUserID := uint(userIDFloat)
+
+	file, err := c.FormFile("room_image")
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "File gambar room tidak ditemukan")
+	}
+
+	roomResponse, err := h.roomService.UpdateRoomImage(roomID, currentUserID, file)
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
+		Success: true,
+		Message: "Gambar room berhasil diperbarui",
+		Data:    roomResponse,
 	})
 }

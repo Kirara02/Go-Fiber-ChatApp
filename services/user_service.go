@@ -7,7 +7,6 @@ import (
 	"main/dto"
 	"main/repository"
 	"main/utils"
-	"mime/multipart"
 
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -18,7 +17,6 @@ type UserService interface {
 	GetUserByID(id uint) (*dto.UserResponse, error)
 	GetAllUsers(keyword string, currentUserID uint, includeSelf bool) ([]dto.UserResponse, error)
 	UpdateUser(id uint, req dto.UpdateUserRequest) (*dto.UserResponse, error)
-	UpdateUserProfileImage(id uint, file *multipart.FileHeader) (*dto.UserResponse, error)
 	DeleteUser(id uint) error
 }
 
@@ -122,38 +120,6 @@ func (s *userService) UpdateUser(id uint, req dto.UpdateUserRequest) (*dto.UserR
 	}
 
 	response := dto.ToUserResponse(userToUpdate)
-	return &response, nil
-}
-
-func (s *userService) UpdateUserProfileImage(id uint, file *multipart.FileHeader) (*dto.UserResponse, error) {
-	user, err := s.userRepo.GetUserByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	// Hapus gambar lama jika ada
-	if user.ProfileImage != nil {
-		// Extract public ID dari URL Cloudinary
-		oldPublicID := utils.ExtractPublicIDFromURL(*user.ProfileImage)
-		_ = s.uploadService.DeleteFile(oldPublicID) // tidak fatal kalau gagal hapus
-	}
-
-	// Generate publicID baru berdasarkan nama user (contoh: "miku_12345")
-	safeName := utils.SanitizeFilename(user.Name)
-	publicID := fmt.Sprintf("%s_%d", safeName, user.ID)
-
-	imageUrl, err := s.uploadService.UploadFile(file, "profiles", publicID)
-	if err != nil {
-		return nil, errors.New("gagal mengunggah gambar")
-	}
-
-	user.ProfileImage = &imageUrl
-
-	if err := s.userRepo.UpdateUser(user); err != nil {
-		return nil, errors.New("gagal menyimpan URL gambar ke profil")
-	}
-
-	response := dto.ToUserResponse(user)
 	return &response, nil
 }
 

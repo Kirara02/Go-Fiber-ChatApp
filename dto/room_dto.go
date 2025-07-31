@@ -10,6 +10,10 @@ type CreateRoomRequest struct {
 	UserIDs []uint `json:"userIds"`
 }
 
+type UpdateRoomRequest struct {
+	RoomImage *string `json:"room_image"`
+}
+
 type RoomResponse struct {
 	ID            uint           `json:"id"`
 	Name          string         `json:"name"`

@@ -2,10 +2,12 @@ package services
 
 import (
 	"errors"
+	"fmt"
 	"main/domain"
 	"main/dto"
 	"main/repository"
 	"main/utils"
+	"mime/multipart"
 	"sort"
 	"strings"
 	"time"
@@ -15,17 +17,21 @@ type RoomService interface {
 	CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error)
 	GetMyRooms(userID uint, view string, includeMembers bool) ([]dto.RoomResponse, error)
 	IsUserMember(userID, roomID uint) (bool, error)
+	GetRoomByID(roomID uint) (*domain.Room, error)
+	UpdateRoomImage(roomID uint, currentUserID uint, file *multipart.FileHeader) (*dto.RoomResponse, error)
 }
 
 type roomService struct {
-	roomRepo repository.RoomRepository
-	userRepo repository.UserRepository
+	roomRepo      repository.RoomRepository
+	userRepo      repository.UserRepository
+	uploadService UploadService
 }
 
-func NewRoomService(roomRepo repository.RoomRepository, userRepo repository.UserRepository) RoomService {
+func NewRoomService(roomRepo repository.RoomRepository, userRepo repository.UserRepository, upload UploadService) RoomService {
 	return &roomService{
-		roomRepo: roomRepo,
-		userRepo: userRepo,
+		roomRepo:      roomRepo,
+		userRepo:      userRepo,
+		uploadService: upload,
 	}
 }
 
@@ -125,4 +131,39 @@ func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) 
 
 func (s *roomService) IsUserMember(userID, roomID uint) (bool, error) {
 	return s.roomRepo.CheckUserInRoom(userID, roomID)
+}
+
+func (s *roomService) GetRoomByID(roomID uint) (*domain.Room, error) {
+	return s.roomRepo.GetRoomByID(roomID)
+}
+
+func (s *roomService) UpdateRoomImage(roomID uint, currentUserID uint, file *multipart.FileHeader) (*dto.RoomResponse, error) {
+	room, err := s.roomRepo.GetRoomByID(roomID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Hapus gambar lama kalau ada
+	if room.RoomImage != nil {
+		oldPublicID := utils.ExtractPublicIDFromURL(*room.RoomImage)
+		_ = s.uploadService.DeleteFile(oldPublicID)
+	}
+
+	// Generate publicID baru untuk image-nya
+	safeName := utils.SanitizeFilename(room.Name)
+	publicID := fmt.Sprintf("%s_%d", safeName, room.ID)
+
+	imageUrl, err := s.uploadService.UploadFile(file, "rooms", publicID)
+	if err != nil {
+		return nil, errors.New("gagal mengunggah gambar room")
+	}
+
+	room.RoomImage = &imageUrl
+
+	if err := s.roomRepo.UpdateRoom(room); err != nil {
+		return nil, errors.New("gagal menyimpan URL gambar ke room")
+	}
+
+	resp := dto.ToRoomResponse(room, currentUserID, false)
+	return &resp, nil
 }

@@ -8,12 +8,14 @@ import (
 )
 
 type RoomRepository interface {
+	SaveRoom(room *domain.Room) error
 	CreateRoom(room *domain.Room, memberIDs []uint) (*domain.Room, error)
 	GetRoomByID(id uint) (*domain.Room, error)
 	GetUserRoomsWithDetails(userID uint) ([]*domain.Room, error)
 	GetSimpleUserRooms(userID uint) ([]*domain.Room, error)
 	CheckUserInRoom(userID, roomID uint) (bool, error)
 	FindPrivateRoomByMembers(memberIDs []uint) (*domain.Room, error)
+	UpdateRoom(room *domain.Room) error
 }
 
 type roomRepository struct {
@@ -22,6 +24,10 @@ type roomRepository struct {
 
 func NewRoomRepository(db *gorm.DB) RoomRepository {
 	return &roomRepository{db: db}
+}
+
+func (r *roomRepository) SaveRoom(room *domain.Room) error {
+	return r.db.Save(room).Error
 }
 
 func (r *roomRepository) CreateRoom(room *domain.Room, memberIDs []uint) (*domain.Room, error) {
@@ -153,4 +159,8 @@ func (r *roomRepository) FindPrivateRoomByMembers(memberIDs []uint) (*domain.Roo
 	}
 
 	return &room, err
+}
+
+func (r *roomRepository) UpdateRoom(room *domain.Room) error {
+	return r.db.Save(room).Error
 }
