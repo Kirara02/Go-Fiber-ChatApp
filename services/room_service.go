@@ -15,7 +15,7 @@ import (
 
 type RoomService interface {
 	CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error)
-	GetMyRooms(userID uint, view string, includeMembers bool) ([]dto.RoomResponse, error)
+	GetMyRooms(userID uint, view string, includeMembers bool,  showEmpty bool) ([]dto.RoomResponse, error)
 	IsUserMember(userID, roomID uint) (bool, error)
 	GetRoomByID(roomID uint) (*domain.Room, error)
 	UpdateRoomImage(roomID uint, currentUserID uint, file *multipart.FileHeader) (*dto.RoomResponse, error)
@@ -93,7 +93,7 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 	return &response, nil
 }
 
-func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) ([]dto.RoomResponse, error) {
+func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool, showEmpty bool) ([]dto.RoomResponse, error) {
 	var rooms []*domain.Room
 	var err error
 
@@ -103,6 +103,7 @@ func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) 
 		rooms, err = s.roomRepo.GetUserRoomsWithDetails(userID)
 
 		if err == nil && len(rooms) > 0 {
+			// Sort berdasarkan waktu terakhir
 			sort.Slice(rooms, func(i, j int) bool {
 				var timeI, timeJ time.Time
 				if rooms[i].LastMessage.ID != 0 {
@@ -124,8 +125,18 @@ func (s *roomService) GetMyRooms(userID uint, view string, includeMembers bool) 
 		return nil, err
 	}
 
-	responses := dto.ToRoomResponses(rooms, userID, includeMembers)
+	// ✅ Filter jika showEmpty == false
+	if !showEmpty {
+		filteredRooms := []*domain.Room{}
+		for _, room := range rooms {
+			if room.LastMessage.ID != 0 {
+				filteredRooms = append(filteredRooms, room)
+			}
+		}
+		rooms = filteredRooms
+	}
 
+	responses := dto.ToRoomResponses(rooms, userID, includeMembers)
 	return responses, nil
 }
 

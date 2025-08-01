@@ -57,7 +57,9 @@ func (h *RoomHandler) GetMyRooms(c *fiber.Ctx) error {
 	view := c.Query("view", "detailed")
 	includeMembers := c.Query("include_members", "true") == "true"
 
-	rooms, err := h.roomService.GetMyRooms(uint(userID), view, includeMembers)
+	showEmpty := c.Query("show_empty", "true") == "true"
+
+	rooms, err := h.roomService.GetMyRooms(uint(userID), view, includeMembers, showEmpty)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Gagal mengambil daftar room")
 	}
