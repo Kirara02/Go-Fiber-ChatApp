@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"main/config"
 	"main/domain"
 	"main/dto"
 	"main/repository"
@@ -11,6 +12,14 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
+)
+
+// Definisikan Sentinel Errors di sini
+var (
+	ErrEmailConflict          = errors.New("email already registered")
+	ErrInvalidCredentials     = errors.New("invalid credentials")
+	ErrInvalidCurrentPassword = errors.New("password lama tidak valid")
+	ErrUserNotFound           = errors.New("pengguna tidak ditemukan")
 )
 
 type AuthService interface {
@@ -38,9 +47,9 @@ func NewAuthService(userRepo repository.UserRepository, tokenRepo repository.Tok
 func (s *authService) Register(req *dto.RegisterRequest) (*domain.User, error) {
 	_, err := s.userRepo.GetUserByEmail(req.Email)
 	if err == nil {
-		return nil, errors.New("email already registered")
+		return nil, ErrEmailConflict
 	}
-	if err != gorm.ErrRecordNotFound {
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
@@ -65,11 +74,11 @@ func (s *authService) Register(req *dto.RegisterRequest) (*domain.User, error) {
 func (s *authService) Login(req *dto.LoginRequest) (string, string, *domain.User, error) {
 	user, err := s.userRepo.GetUserByEmail(req.Email)
 	if err != nil {
-		return "", "", nil, err
+		return "", "", nil, ErrInvalidCredentials
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return "", "", nil, err
+		return "", "", nil, ErrInvalidCredentials
 	}
 
 	accessToken, refreshToken, err := s.jwtService.GenerateTokens(user)
@@ -91,7 +100,7 @@ func (s *authService) RefreshToken(req *dto.RefreshTokenRequest) (string, string
 		return "", "", errors.New("gagal mendapatkan klaim token")
 	}
 
-	userIDFloat, ok := claims["user_id"].(float64)
+	userIDFloat, ok := claims[config.ClaimUserID].(float64)
 	if !ok {
 		return "", "", errors.New("ID pengguna tidak valid di dalam token")
 	}
@@ -99,7 +108,7 @@ func (s *authService) RefreshToken(req *dto.RefreshTokenRequest) (string, string
 
 	user, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
-		return "", "", errors.New("pengguna tidak ditemukan")
+		return "", "", ErrUserNotFound
 	}
 
 	newAccessToken, newRefreshToken, err := s.jwtService.GenerateTokens(user)
@@ -111,25 +120,20 @@ func (s *authService) RefreshToken(req *dto.RefreshTokenRequest) (string, string
 }
 
 func (s *authService) ChangePassword(userID uint, req dto.ChangePasswordRequest) error {
-	// 1. Ambil data pengguna saat ini
 	user, err := s.userRepo.GetUserByID(userID)
 	if err != nil {
-		return errors.New("pengguna tidak ditemukan")
+		return ErrUserNotFound
 	}
 
-	// 2. Verifikasi password lama (langkah keamanan krusial)
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.CurrentPassword)); err != nil {
-		// Jika tidak cocok, kembalikan error. Jangan beri tahu penyerang mana yang salah.
-		return errors.New("password lama tidak valid")
+		return ErrInvalidCurrentPassword
 	}
 
-	// 3. Hash password baru
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 
-	// 4. Perbarui field password dan simpan
 	user.Password = string(hashedPassword)
 	return s.userRepo.UpdateUser(user)
 }
@@ -150,6 +154,10 @@ func (s *authService) Logout(tokenString string) error {
 		return errors.New("klaim 'exp' tidak valid")
 	}
 	expiresAt := time.Unix(int64(expFloat), 0)
+
+	if time.Now().After(expiresAt) {
+		return nil
+	}
 
 	invalidatedToken := &domain.InvalidatedToken{
 		Token:     tokenString,

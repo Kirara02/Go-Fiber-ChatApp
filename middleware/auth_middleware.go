@@ -39,13 +39,12 @@ func AuthMiddleware(cfg *config.Config, tokenRepo repository.TokenRepository) fi
 			})
 		}
 
-		// Proses validasi JWT berjalan seperti biasa.
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fiber.NewError(fiber.StatusUnauthorized, "Metode signing tidak terduga")
 			}
 			claims, ok := token.Claims.(jwt.MapClaims)
-			if !ok || claims["type"] != "access" {
+			if !ok || claims[config.ClaimType] != config.TokenTypeAccess {
 				return nil, fiber.NewError(fiber.StatusUnauthorized, "Tipe token tidak valid")
 			}
 			return []byte(cfg.JWTSecret), nil
@@ -58,8 +57,8 @@ func AuthMiddleware(cfg *config.Config, tokenRepo repository.TokenRepository) fi
 		}
 
 		claims := token.Claims.(jwt.MapClaims)
-		c.Locals("user_id", claims["user_id"])
-		c.Locals("user_name", claims["name"])
+		c.Locals(config.ClaimUserID, claims[config.ClaimUserID])
+		c.Locals(config.ClaimUserName, claims[config.ClaimUserName])
 
 		return c.Next()
 	}

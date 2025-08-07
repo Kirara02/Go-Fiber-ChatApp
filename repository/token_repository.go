@@ -2,6 +2,7 @@ package repository
 
 import (
 	"main/domain"
+	"time"
 
 	"gorm.io/gorm"
 )
@@ -9,6 +10,7 @@ import (
 type TokenRepository interface {
 	CreateInvalidatedToken(token *domain.InvalidatedToken) error
 	IsTokenInvalidated(tokenString string) (bool, error)
+	CleanExpiredTokens() (int64, error)
 }
 
 type tokenRepository struct {
@@ -35,4 +37,12 @@ func (r *tokenRepository) IsTokenInvalidated(tokenString string) (bool, error) {
 	}
 
 	return true, nil
+}
+
+func (r *tokenRepository) CleanExpiredTokens() (int64, error) {
+	result := r.db.Where("expires_at < ?", time.Now()).Delete(&domain.InvalidatedToken{})
+	if result.Error != nil {
+		return 0, result.Error
+	}
+	return result.RowsAffected, nil
 }

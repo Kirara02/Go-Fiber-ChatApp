@@ -9,18 +9,21 @@ package main
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/wire"
+	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 	"main/config"
 	"main/handlers"
 	"main/repository"
 	"main/router"
+	"main/scheduler"
 	"main/services"
 	"main/websocket"
 )
 
 // Injectors from wire.go:
 
-func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) *fiber.App {
+// InitializeApp sekarang mengembalikan struct Application dan error
+func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) (*Application, error) {
 	userRepository := repository.NewUserRepository(db)
 	chatRepository := repository.NewChatRepository(db)
 	roomRepository := repository.NewRoomRepository(db)
@@ -36,13 +39,28 @@ func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) *fiber.A
 	roomHandler := handlers.NewRoomHandler(roomService)
 	uploadHandler := handlers.NewUploadHandler(uploadService)
 	app := router.NewRouter(chatHandler, authHandler, userHandler, roomHandler, uploadHandler, tokenRepository, cfg)
-	return app
+	cron := scheduler.InitCronJobs(tokenRepository)
+	application := NewApplication(app, cron)
+	return application, nil
 }
 
 // wire.go:
+
+// Definisikan struct untuk menampung hasil inisialisasi
+type Application struct {
+	App  *fiber.App
+	Cron *cron.Cron
+}
+
+// Buat provider untuk struct Application
+func NewApplication(app *fiber.App, cron2 *cron.Cron) *Application {
+	return &Application{App: app, Cron: cron2}
+}
 
 var repositorySet = wire.NewSet(repository.NewUserRepository, repository.NewTokenRepository, repository.NewRoomRepository, repository.NewChatRepository)
 
 var serviceSet = wire.NewSet(services.NewJWTService, services.NewAuthService, services.NewUserService, services.NewRoomService, services.NewUploadService)
 
 var handlerSet = wire.NewSet(handlers.NewAuthHandler, handlers.NewChatHandler, handlers.NewUserHandler, handlers.NewRoomHandler, handlers.NewUploadHandler)
+
+var schedulerSet = wire.NewSet(scheduler.InitCronJobs)

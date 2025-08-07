@@ -8,6 +8,6 @@ type BaseResponse struct {
 }
 
 type ErrorResponse struct {
-	Code    int    `json:"code"`
-	Details string `json:"details"`
+	Code    int `json:"code"`
+	Details any `json:"details"`
 }

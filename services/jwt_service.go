@@ -32,9 +32,9 @@ func (s *jwtService) GenerateTokens(user *domain.User) (accessToken string, refr
 
 	refreshExp := time.Now().Add(time.Hour * 24 * time.Duration(s.cfg.RefreshTokenExpDays)).Unix()
 	refreshClaims := jwt.MapClaims{
-		"user_id": user.ID,
-		"exp":     refreshExp,
-		"type":    "refresh",
+		config.ClaimUserID: user.ID,
+		"exp":              refreshExp,
+		config.ClaimType:   config.TokenTypeRefresh,
 	}
 	refreshTokenObj := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
 	refreshToken, err = refreshTokenObj.SignedString([]byte(s.cfg.JWTSecret))
@@ -49,10 +49,10 @@ func (s *jwtService) GenerateAccessToken(user *domain.User) (string, error) {
 	accessExp := time.Now().Add(time.Hour * 24 * time.Duration(s.cfg.AccessTokenExpDays)).Unix()
 
 	claims := jwt.MapClaims{
-		"user_id": user.ID,
-		"name":    user.Name,
-		"exp":     accessExp,
-		"type":    "access",
+		config.ClaimUserID:   user.ID,
+		config.ClaimUserName: user.Name,
+		"exp":                accessExp,
+		config.ClaimType:     config.TokenTypeAccess,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -72,7 +72,7 @@ func (s *jwtService) ValidateRefreshToken(tokenString string) (*jwt.Token, error
 		}
 
 		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok || claims["type"] != "refresh" {
+		if !ok || claims[config.ClaimType] != config.TokenTypeRefresh {
 			return nil, errors.New("invalid token type")
 		}
 

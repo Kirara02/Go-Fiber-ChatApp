@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors" // Pastikan package 'errors' diimpor
 	"fmt"
 	"main/dto"
 	"main/services"
@@ -23,22 +24,25 @@ func NewAuthHandler(authService services.AuthService) *AuthHandler {
 	}
 }
 
-func formatValidationError(err error) string {
+// Fungsi ini sudah bagus, tidak perlu diubah.
+func formatValidationErrors(err error) map[string]string {
+	errorMessages := make(map[string]string)
 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
 		for _, e := range validationErrors {
+			fieldName := e.Field()
 			switch e.Tag() {
 			case "required":
-				return fmt.Sprintf("Field %s wajib diisi", e.Field())
+				errorMessages[fieldName] = fmt.Sprintf("Field %s wajib diisi", fieldName)
 			case "email":
-				return fmt.Sprintf("Field %s harus berupa format email yang valid", e.Field())
+				errorMessages[fieldName] = fmt.Sprintf("Field %s harus berupa format email yang valid", fieldName)
 			case "min":
-				return fmt.Sprintf("Field %s harus memiliki minimal %s karakter", e.Field(), e.Param())
+				errorMessages[fieldName] = fmt.Sprintf("Field %s harus memiliki minimal %s karakter", fieldName, e.Param())
 			default:
-				return fmt.Sprintf("Field %s tidak valid", e.Field())
+				errorMessages[fieldName] = fmt.Sprintf("Field %s tidak valid", fieldName)
 			}
 		}
 	}
-	return err.Error()
+	return errorMessages
 }
 
 func (h *AuthHandler) Register(c *fiber.Ctx) error {
@@ -52,17 +56,14 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 	if err := validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.BaseResponse{
 			Success: false, Message: "Data yang diberikan tidak valid",
-
-			Error: &utils.ErrorResponse{
-				Code:    fiber.StatusBadRequest,
-				Details: formatValidationError(err),
-			},
+			Error: &utils.ErrorResponse{Code: fiber.StatusBadRequest, Details: formatValidationErrors(err)},
 		})
 	}
 
 	user, err := h.authService.Register(req)
 	if err != nil {
-		if err.Error() == "email already registered" {
+		// <-- Gunakan errors.Is untuk memeriksa tipe error
+		if errors.Is(err, services.ErrEmailConflict) {
 			return c.Status(fiber.StatusConflict).JSON(utils.BaseResponse{
 				Success: false, Message: "Email ini sudah terdaftar",
 				Error: &utils.ErrorResponse{Code: fiber.StatusConflict, Details: err.Error()},
@@ -87,10 +88,16 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	accessToken, refreshToken, user, err := h.authService.Login(req)
-	if err != nil {
+	// <-- Periksa error kredensial secara spesifik
+	if errors.Is(err, services.ErrInvalidCredentials) {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.BaseResponse{
 			Success: false, Message: "Kredensial tidak valid",
 			Error: &utils.ErrorResponse{Code: fiber.StatusUnauthorized, Details: "Email atau password salah"},
+		})
+	}
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.BaseResponse{
+			Success: false, Message: "Terjadi kesalahan saat login", Error: &utils.ErrorResponse{Code: fiber.StatusInternalServerError, Details: err.Error()},
 		})
 	}
 
@@ -106,6 +113,7 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
+	// (Fungsi ini tidak perlu diubah karena sudah menangani error secara umum)
 	req := new(dto.RefreshTokenRequest)
 	if err := c.BodyParser(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.BaseResponse{
@@ -116,7 +124,7 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 	if err := validate.Struct(req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(utils.BaseResponse{
 			Success: false, Message: "Refresh token wajib diisi",
-			Error: &utils.ErrorResponse{Code: fiber.StatusBadRequest, Details: formatValidationError(err)},
+			Error: &utils.ErrorResponse{Code: fiber.StatusBadRequest, Details: formatValidationErrors(err)},
 		})
 	}
 
@@ -141,19 +149,45 @@ func (h *AuthHandler) RefreshToken(c *fiber.Ctx) error {
 func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 	userIDLocals := c.Locals("user_id")
 	if userIDLocals == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "User ID tidak ditemukan")
+		return c.Status(fiber.StatusUnauthorized).JSON(utils.BaseResponse{
+			Success: false, Message: "Akses ditolak",
+			Error: &utils.ErrorResponse{Code: fiber.StatusUnauthorized, Details: "User ID tidak ditemukan dari token"},
+		})
 	}
-	userID, _ := userIDLocals.(float64)
+	userIDFloat, ok := userIDLocals.(float64)
+	if !ok {
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.BaseResponse{
+			Success: false, Message: "Tipe data User ID tidak valid di dalam token",
+		})
+	}
+	userID := uint(userIDFloat)
 
 	var req dto.ChangePasswordRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Request body tidak valid")
+		return c.Status(fiber.StatusBadRequest).JSON(utils.BaseResponse{
+			Success: false, Message: "Request body tidak valid",
+			Error: &utils.ErrorResponse{Code: fiber.StatusBadRequest, Details: err.Error()},
+		})
 	}
 
-	// Panggil service yang baru
+	// <-- Ganti `fiber.NewError` dengan response JSON yang konsisten
 	if err := h.authService.ChangePassword(uint(userID), req); err != nil {
-		// Kembalikan status 'Forbidden' jika password lama salah
-		return fiber.NewError(fiber.StatusForbidden, err.Error())
+		if errors.Is(err, services.ErrInvalidCurrentPassword) {
+			return c.Status(fiber.StatusForbidden).JSON(utils.BaseResponse{
+				Success: false, Message: "Password lama yang Anda masukkan salah",
+				Error: &utils.ErrorResponse{Code: fiber.StatusForbidden, Details: err.Error()},
+			})
+		}
+		if errors.Is(err, services.ErrUserNotFound) {
+			return c.Status(fiber.StatusNotFound).JSON(utils.BaseResponse{
+				Success: false, Message: "Pengguna tidak ditemukan",
+				Error: &utils.ErrorResponse{Code: fiber.StatusNotFound, Details: err.Error()},
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(utils.BaseResponse{
+			Success: false, Message: "Gagal memperbarui password",
+			Error: &utils.ErrorResponse{Code: fiber.StatusInternalServerError, Details: err.Error()},
+		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
@@ -163,6 +197,7 @@ func (h *AuthHandler) ChangePassword(c *fiber.Ctx) error {
 }
 
 func (h *AuthHandler) Logout(c *fiber.Ctx) error {
+	// (Fungsi ini tidak perlu diubah karena sudah menangani error secara umum)
 	authHeader := c.Get("Authorization")
 	if authHeader == "" {
 		return c.Status(fiber.StatusUnauthorized).JSON(utils.BaseResponse{

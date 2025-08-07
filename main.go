@@ -16,7 +16,7 @@ func main() {
 	}
 
 	cfg := config.New()
-	
+
 	db, err := cfg.ConnectDB()
 	if err != nil {
 		log.Fatalf("Gagal terhubung ke database: %v", err)
@@ -31,11 +31,16 @@ func main() {
 
 	hub := chat.NewHub()
 
-	app := InitializeApp(cfg, db, hub)
+	// Panggil InitializeApp dan terima struct Application
+	appContainer, err := InitializeApp(cfg, db, hub)
+	if err != nil {
+		log.Fatalf("Gagal menginisialisasi aplikasi: %v", err)
+	}
 
 	port := ":8080"
 	log.Printf("Server Fiber memulai di port %s", port)
-	if err := app.Listen(port); err != nil {
+	// Gunakan app dari dalam container
+	if err := appContainer.App.Listen(port); err != nil {
 		log.Fatalf("Gagal memulai server: %v", err)
 	}
 }
