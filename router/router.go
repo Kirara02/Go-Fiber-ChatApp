@@ -88,11 +88,12 @@ func NewRouter(
 
 	aiRoutes := api.Group("/ai")
 	aiRoutes.Post("/chat", aiHandler.ChatWithAI)
+	aiRoutes.Post("/chat-stream", aiHandler.ChatStream)
 
 	// WebSocket
 	chatRoutes := app.Group("/chat")
 	chatRoutes.Use(auth)
 	chatRoutes.Get("/ws/:roomId", ws.New(chatHandler.HandleWebSocket))
-
+	
 	return app
 }

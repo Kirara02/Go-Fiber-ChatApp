@@ -8,6 +8,7 @@ import (
 	"main/dto"
 
 	"github.com/google/generative-ai-go/genai"
+	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 )
 
@@ -55,4 +56,36 @@ func (s *GeminiService) GenerateContent(ctx context.Context, prompt string) (*dt
 		Provider: "google",
 		Model:    s.modelName,
 	}, nil
+}
+
+func (s *GeminiService) GenerateContentStream(ctx context.Context, prompt string) (<-chan string, error) {
+	iter := s.client.GenerateContentStream(ctx, genai.Text(prompt))
+	
+    // Buat channel untuk mengirimkan data ke handler
+	streamChan := make(chan string)
+
+	go func() {
+		defer close(streamChan) // Pastikan channel ditutup setelah selesai
+		for {
+			resp, err := iter.Next()
+			if err == iterator.Done {
+				break
+			}
+			if err != nil {
+				// Sebaiknya log error ini
+				log.Printf("Streaming error from Gemini: %v", err)
+				break
+			}
+
+			if len(resp.Candidates) > 0 && resp.Candidates[0].Content != nil {
+				for _, part := range resp.Candidates[0].Content.Parts {
+					if txt, ok := part.(genai.Text); ok {
+						streamChan <- string(txt)
+					}
+				}
+			}
+		}
+	}()
+
+	return streamChan, nil
 }
