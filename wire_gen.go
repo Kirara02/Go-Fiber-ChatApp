@@ -38,7 +38,12 @@ func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) (*Applic
 	userHandler := handlers.NewUserHandler(userService)
 	roomHandler := handlers.NewRoomHandler(roomService)
 	uploadHandler := handlers.NewUploadHandler(uploadService)
-	app := router.NewRouter(chatHandler, authHandler, userHandler, roomHandler, uploadHandler, tokenRepository, cfg)
+	aiService, err := services.ProvideAIService(cfg)
+	if err != nil {
+		return nil, err
+	}
+	aiHandler := handlers.NewAIHandler(aiService)
+	app := router.NewRouter(chatHandler, authHandler, userHandler, roomHandler, uploadHandler, aiHandler, tokenRepository, cfg)
 	cron := scheduler.InitCronJobs(tokenRepository)
 	application := NewApplication(app, cron)
 	return application, nil
@@ -59,8 +64,8 @@ func NewApplication(app *fiber.App, cron2 *cron.Cron) *Application {
 
 var repositorySet = wire.NewSet(repository.NewUserRepository, repository.NewTokenRepository, repository.NewRoomRepository, repository.NewChatRepository)
 
-var serviceSet = wire.NewSet(services.NewJWTService, services.NewAuthService, services.NewUserService, services.NewRoomService, services.NewUploadService)
+var serviceSet = wire.NewSet(services.NewJWTService, services.NewAuthService, services.NewUserService, services.NewRoomService, services.NewUploadService, services.ProvideAIService)
 
-var handlerSet = wire.NewSet(handlers.NewAuthHandler, handlers.NewChatHandler, handlers.NewUserHandler, handlers.NewRoomHandler, handlers.NewUploadHandler)
+var handlerSet = wire.NewSet(handlers.NewAuthHandler, handlers.NewChatHandler, handlers.NewUserHandler, handlers.NewRoomHandler, handlers.NewUploadHandler, handlers.NewAIHandler)
 
 var schedulerSet = wire.NewSet(scheduler.InitCronJobs)

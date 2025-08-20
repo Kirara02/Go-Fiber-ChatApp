@@ -42,6 +42,7 @@ var serviceSet = wire.NewSet(
 	services.NewUserService,
 	services.NewRoomService,
 	services.NewUploadService,
+	services.ProvideAIService,
 )
 
 var handlerSet = wire.NewSet(
@@ -50,6 +51,7 @@ var handlerSet = wire.NewSet(
 	handlers.NewUserHandler,
 	handlers.NewRoomHandler,
 	handlers.NewUploadHandler,
+	handlers.NewAIHandler,
 )
 
 var schedulerSet = wire.NewSet(

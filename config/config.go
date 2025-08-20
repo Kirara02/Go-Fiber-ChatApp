@@ -22,6 +22,9 @@ type Config struct {
 	CloudinaryAPIKey     string
 	CloudinaryAPISecret  string
 	CloudinaryBaseFolder string
+	AIProvider           string
+	GeminiAPIKey         string
+	OpenaiAPIKey         string
 }
 
 func New() *Config {
@@ -40,6 +43,9 @@ func New() *Config {
 		CloudinaryAPIKey:     getEnv("CLOUDINARY_API_KEY", ""),
 		CloudinaryAPISecret:  getEnv("CLOUDINARY_API_SECRET", ""),
 		CloudinaryBaseFolder: getEnv("CLOUDINARY_BASE_FOLDER", "chat-app"),
+		AIProvider:           getEnv("AI_PROVIDER", ""),
+		GeminiAPIKey:         getEnv("GEMINI_API_KEY", ""),
+		OpenaiAPIKey:         getEnv("OPENAI_API_KEY", ""),
 	}
 }
 

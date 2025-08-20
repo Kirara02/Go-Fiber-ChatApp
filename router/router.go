@@ -20,6 +20,7 @@ func NewRouter(
 	userHandler *handlers.UserHandler,
 	roomHandler *handlers.RoomHandler,
 	uploadHandler *handlers.UploadHandler,
+	aiHandler *handlers.AIHandler,
 	tokenRepo repository.TokenRepository,
 	cfg *config.Config,
 ) *fiber.App {
@@ -84,6 +85,9 @@ func NewRouter(
 	roomRoutes.Get("/", roomHandler.GetMyRooms)
 	roomRoutes.Get("/:id", roomHandler.GetRoomByID)
 	roomRoutes.Put("/:id/image", roomHandler.UpdateRoomImage)
+
+	aiRoutes := api.Group("/ai")
+	aiRoutes.Post("/chat", aiHandler.ChatWithAI)
 
 	// WebSocket
 	chatRoutes := app.Group("/chat")
