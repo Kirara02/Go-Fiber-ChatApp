@@ -20,6 +20,7 @@ func NewRouter(
 	userHandler *handlers.UserHandler,
 	roomHandler *handlers.RoomHandler,
 	uploadHandler *handlers.UploadHandler,
+	productHandler *handlers.ProductHandler,
 	aiHandler *handlers.AIHandler,
 	tokenRepo repository.TokenRepository,
 	cfg *config.Config,
@@ -64,6 +65,9 @@ func NewRouter(
 	authRoute.Post("/logout", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.Logout)
 	authRoute.Put("/change-password", middleware.AuthMiddleware(cfg, tokenRepo), authHandler.ChangePassword)
 
+	productRoutes := api.Group("/products")
+	productRoutes.Get("/", productHandler.GetAllProducts)
+
 	// Route with authentication
 	auth := middleware.AuthMiddleware(cfg, tokenRepo)
 	api.Use(auth)
@@ -94,6 +98,6 @@ func NewRouter(
 	chatRoutes := app.Group("/chat")
 	chatRoutes.Use(auth)
 	chatRoutes.Get("/ws/:roomId", ws.New(chatHandler.HandleWebSocket))
-	
+
 	return app
 }

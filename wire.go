@@ -53,6 +53,7 @@ var handlerSet = wire.NewSet(
 	handlers.NewUserHandler,
 	handlers.NewRoomHandler,
 	handlers.NewUploadHandler,
+	handlers.NewProductHandler,
 	handlers.NewAIHandler,
 )
 
