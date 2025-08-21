@@ -25,6 +25,8 @@ type Config struct {
 	AIProvider           string
 	GeminiAPIKey         string
 	OpenaiAPIKey         string
+	GeminiModel          string
+	OpenaiModel          string
 }
 
 func New() *Config {
@@ -45,7 +47,9 @@ func New() *Config {
 		CloudinaryBaseFolder: getEnv("CLOUDINARY_BASE_FOLDER", "chat-app"),
 		AIProvider:           getEnv("AI_PROVIDER", ""),
 		GeminiAPIKey:         getEnv("GEMINI_API_KEY", ""),
+		GeminiModel:          getEnv("GEMINI_MODEL", ""),
 		OpenaiAPIKey:         getEnv("OPENAI_API_KEY", ""),
+		OpenaiModel:          getEnv("OPENAI_MODEL", ""),
 	}
 }
 

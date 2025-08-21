@@ -17,7 +17,7 @@ func ProvideAIService(cfg *config.Config) (AIService, error) {
 	case "openai":
 		log.Println("Initializing AI Provider: OpenAI ChatGPT")
 		// NewOpenAIService returns AIService, so we wrap it to match the signature
-		return NewOpenAIService(cfg), nil
+		return NewOpenAIService(cfg)
 	default:
 		// Return an error if the provider is not supported
 		return nil, errors.New("invalid AI_PROVIDER specified: " + cfg.AIProvider)

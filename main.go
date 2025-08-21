@@ -23,7 +23,7 @@ func main() {
 	}
 	log.Println("Koneksi database berhasil.")
 
-	err = db.AutoMigrate(&domain.User{}, &domain.Room{}, &domain.ChatMessage{}, &domain.InvalidatedToken{})
+	err = db.AutoMigrate(&domain.User{}, &domain.Room{}, &domain.ChatMessage{}, &domain.InvalidatedToken{}, &domain.Session{})
 	if err != nil {
 		log.Fatalf("Gagal melakukan migrasi database: %v", err)
 	}
