@@ -940,7 +940,7 @@
             }
             if (data.type === "history") {
               lastSenderId = null;
-              data.messages.forEach((msg) => addChatMessage(msg));
+              data.messages.reverse().forEach((msg) => addChatMessage(msg));
               addStatusMessage("Riwayat chat berhasil dimuat.");
             } else if (data.type === "chat") {
               addChatMessage(data);

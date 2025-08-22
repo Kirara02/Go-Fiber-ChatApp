@@ -23,7 +23,14 @@ import (
 // Injectors from wire.go:
 
 // InitializeApp sekarang mengembalikan struct Application dan error
-func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) (*Application, error) {
+func InitializeApp(cfg *config.Config, db *gorm.DB) (*Application, error) {
+	aiService, err := services.ProvideAIService(cfg)
+	if err != nil {
+		return nil, err
+	}
+	sessionRepository := repository.NewSessionRepository(db)
+	sessionService := services.NewSessionService(sessionRepository)
+	hub := websocket.NewHub(aiService, sessionService)
 	userRepository := repository.NewUserRepository(db)
 	chatRepository := repository.NewChatRepository(db)
 	roomRepository := repository.NewRoomRepository(db)
@@ -39,12 +46,6 @@ func InitializeApp(cfg *config.Config, db *gorm.DB, hub *websocket.Hub) (*Applic
 	roomHandler := handlers.NewRoomHandler(roomService)
 	uploadHandler := handlers.NewUploadHandler(uploadService)
 	productHandler := handlers.NewProductHandler()
-	aiService, err := services.ProvideAIService(cfg)
-	if err != nil {
-		return nil, err
-	}
-	sessionRepository := repository.NewSessionRepository(db)
-	sessionService := services.NewSessionService(sessionRepository)
 	aiHandler := handlers.NewAIHandler(aiService, sessionService)
 	app := router.NewRouter(chatHandler, authHandler, userHandler, roomHandler, uploadHandler, productHandler, aiHandler, tokenRepository, cfg)
 	cron := scheduler.InitCronJobs(tokenRepository)
@@ -64,6 +65,8 @@ type Application struct {
 func NewApplication(app *fiber.App, cron2 *cron.Cron) *Application {
 	return &Application{App: app, Cron: cron2}
 }
+
+var websocketSet = wire.NewSet(websocket.NewHub)
 
 var repositorySet = wire.NewSet(repository.NewUserRepository, repository.NewTokenRepository, repository.NewRoomRepository, repository.NewChatRepository, repository.NewSessionRepository)
 

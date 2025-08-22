@@ -37,7 +37,7 @@ func (h *ChatHandler) HandleWebSocket(c *ws.Conn) {
 	roomIDStr := c.Params("roomId")
 	roomID, err := strconv.ParseUint(roomIDStr, 10, 32)
 	if err != nil {
-		log.Println("FATAL: Room ID di URL tidak valid.")
+		log.Println("FATAL: Room ID di URL tidak valid.", err)
 		c.Close()
 		return
 	}
@@ -70,21 +70,17 @@ func (h *ChatHandler) HandleWebSocket(c *ws.Conn) {
 
 	room := h.hub.GetOrCreateRoom(roomIDStr, h.chatRepo)
 
-	log.Printf("SUCCESS: Pengguna '%s' (ID: %d) terhubung ke room '%s'.", user.Name, user.ID, roomIDStr)
-
 	client := chat.NewClient(c, room, user.ID, user.Name)
 
 	if len(history) > 0 {
 		var messageResponses []dto.ChatMessageResponse
-		for _, msg := range history {
-			messageResponses = append(messageResponses, dto.ToChatMessageResponse(&msg))
+		for i := len(history) - 1; i >= 0; i-- { // Balik urutan agar pesan lama muncul duluan
+			messageResponses = append(messageResponses, dto.ToChatMessageResponse(&history[i]))
 		}
-
 		historyResponse := dto.ChatHistoryResponse{
 			Type:     "history",
 			Messages: messageResponses,
 		}
-
 		jsonHistory, err := json.Marshal(historyResponse)
 		if err == nil {
 			client.Send <- jsonHistory
@@ -94,6 +90,5 @@ func (h *ChatHandler) HandleWebSocket(c *ws.Conn) {
 	room.Register <- client
 
 	go client.WritePump()
-
 	client.ReadPump()
 }

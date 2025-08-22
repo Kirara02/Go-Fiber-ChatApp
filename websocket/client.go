@@ -5,6 +5,7 @@ import (
 	"log"
 	"main/dto"
 	"strconv"
+	"strings"
 	"time"
 
 	ws "github.com/gofiber/websocket/v2"
@@ -43,26 +44,41 @@ func (c *Client) ReadPump() {
 			break
 		}
 
+		messageContent := string(message)
 		roomIDUint, _ := strconv.ParseUint(c.room.ID, 10, 32)
 
+		// --- LOGIKA BARU ---
+		// Langkah 1: Selalu siarkan pesan pengguna terlebih dahulu agar tersimpan dan terlihat.
 		chatMessageDTO := dto.ChatMessageResponse{
 			Type:       "chat",
 			SenderID:   c.UserID,
 			SenderName: c.UserName,
-			Content:    string(message),
+			Content:    messageContent,
 			RoomID:     uint(roomIDUint),
 			CreatedAt:  time.Now(),
 		}
-
 		jsonMessage, err := json.Marshal(chatMessageDTO)
 		if err != nil {
-			log.Println("Error marshal real-time chat message DTO:", err)
+			log.Println("Error marshal DTO:", err)
 			continue
 		}
 
+		// Kirim pesan pengguna ke broadcast agar semua orang bisa melihatnya dan tersimpan di DB.
 		c.room.broadcast <- BroadcastMessage{
 			Sender:  c,
 			Payload: jsonMessage,
+		}
+
+		// Langkah 2: Setelah disiarkan, periksa apakah pesan ini juga untuk AI.
+		if strings.HasPrefix(strings.ToLower(messageContent), "@ai") {
+			prompt := strings.TrimSpace(strings.TrimPrefix(messageContent, "@ai"))
+			if prompt != "" {
+				// Kirim prompt yang sudah bersih ke channel AI untuk diproses.
+				c.room.processAI <- AIMessage{
+					Sender:  c,
+					Content: prompt,
+				}
+			}
 		}
 	}
 }
@@ -71,6 +87,7 @@ func (c *Client) WritePump() {
 	for message := range c.Send {
 		if err := c.conn.WriteMessage(ws.TextMessage, message); err != nil {
 			log.Println("write error:", err)
+			c.conn.Close()
 			break
 		}
 	}

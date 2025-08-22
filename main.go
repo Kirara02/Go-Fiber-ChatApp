@@ -4,7 +4,6 @@ import (
 	"log"
 	"main/config"
 	"main/domain"
-	chat "main/websocket"
 
 	"github.com/joho/godotenv"
 )
@@ -29,10 +28,8 @@ func main() {
 	}
 	log.Println("Migrasi database selesai.")
 
-	hub := chat.NewHub()
-
 	// Panggil InitializeApp dan terima struct Application
-	appContainer, err := InitializeApp(cfg, db, hub)
+	appContainer, err := InitializeApp(cfg, db)
 	if err != nil {
 		log.Fatalf("Gagal menginisialisasi aplikasi: %v", err)
 	}

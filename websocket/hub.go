@@ -3,18 +3,22 @@ package websocket
 import (
 	"log"
 	"main/repository"
+	"main/services"
 	"sync"
 )
 
 type Hub struct {
-	rooms map[string]*Room
-
-	mu sync.RWMutex
+	rooms          map[string]*Room
+	mu             sync.RWMutex
+	aiService      services.AIService
+	sessionService services.SessionService
 }
 
-func NewHub() *Hub {
+func NewHub(aiService services.AIService, sessionService services.SessionService) *Hub {
 	return &Hub{
-		rooms: make(map[string]*Room),
+		rooms:          make(map[string]*Room),
+		aiService:      aiService,
+		sessionService: sessionService,
 	}
 }
 
@@ -26,7 +30,8 @@ func (h *Hub) GetOrCreateRoom(roomID string, chatRepo repository.ChatRepository)
 		return room
 	}
 
-	room := NewRoom(roomID, chatRepo, h)
+	// Teruskan AIService saat membuat Room baru
+	room := NewRoom(roomID, chatRepo, h, h.aiService, h.sessionService)
 	h.rooms[roomID] = room
 
 	go room.Run()
