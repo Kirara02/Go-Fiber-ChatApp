@@ -550,7 +550,7 @@
             if (!data.success) throw new Error(data.message);
 
             roomsList.innerHTML = "";
-            if (data.data.length === 0) {
+            if (data.data === null || data.data.length === 0) {
               roomsList.innerHTML =
                 "<li>Anda belum bergabung dengan room manapun.</li>";
               return;
@@ -609,50 +609,66 @@
         }
 
         function getDisplayNameForRoom(room) {
-          if (!room.users || !Array.isArray(room.users)) {
-            return room.name || "Grup";
-          }
-
-          if (!room.is_private || room.is_group === true) {
+          // Jika ini grup, selalu gunakan nama room.
+          if (room.is_group) {
             return room.name || "Grup Tanpa Nama";
           }
 
-          const otherUser = room.users.find((user) => user.id !== myId);
-
-          return otherUser ? otherUser.name : "Direct Message";
-        }
-
-        createRoomForm.addEventListener("submit", async (e) => {
-          e.preventDefault();
-
-          // Validasi nama grup jika diperlukan
-          if (roomNameInput.required && !roomNameInput.value.trim()) {
-            createRoomError.textContent = "Nama grup wajib diisi.";
-            createRoomError.classList.remove("hidden");
-            return;
+          // Jika ini DM, cari nama pengguna lain.
+          if (room.users && Array.isArray(room.users)) {
+            const otherUser = room.users.find((user) => user.id !== myId);
+            return otherUser ? otherUser.name : "Direct Message";
           }
 
-          // Sisa logikanya hampir sama
-          const name = roomNameInput.value;
+          // Fallback
+          return room.name;
+        }
+
+        // --- FUNGSI DIPERBARUI SECARA TOTAL ---
+        createRoomForm.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          createRoomError.classList.add("hidden");
+
           const selectedUserIds = Array.from(usersSelect.selectedOptions).map(
             (option) => parseInt(option.value)
           );
 
-          if (selectedUserIds.length === 0) {
+          let endpoint = "";
+          let body = {};
+
+          if (selectedUserIds.length === 1) {
+            // Ini adalah pembuatan DM
+            endpoint = "/api/rooms/dm";
+            body = JSON.stringify({
+              target_user_id: selectedUserIds[0],
+            });
+          } else if (selectedUserIds.length > 1) {
+            // Ini adalah pembuatan Grup
+            const name = roomNameInput.value.trim();
+            if (!name) {
+              createRoomError.textContent = "Nama grup wajib diisi.";
+              createRoomError.classList.remove("hidden");
+              return;
+            }
+            endpoint = "/api/rooms/group";
+            body = JSON.stringify({
+              name: name,
+              userIds: selectedUserIds,
+            });
+          } else {
             createRoomError.textContent = "Pilih minimal satu anggota.";
             createRoomError.classList.remove("hidden");
             return;
           }
 
           try {
-            const res = await fetch("/api/rooms", {
+            const res = await fetch(endpoint, {
               method: "POST",
               headers: {
                 "Content-Type": "application/json",
                 Authorization: `Bearer ${currentToken}`,
               },
-              // Di backend, kita akan menentukan owner berdasarkan creatorID
-              body: JSON.stringify({ name: name, userIds: selectedUserIds }),
+              body: body,
             });
 
             if (res.status === 401 || res.status === 403) {
@@ -664,8 +680,6 @@
             if (!data.success) throw new Error(data.message);
 
             createRoomForm.reset();
-            createRoomError.classList.add("hidden");
-            // Trigger event 'change' secara manual untuk mereset tampilan form
             usersSelect.dispatchEvent(new Event("change"));
             await populateRoomsList();
           } catch (err) {

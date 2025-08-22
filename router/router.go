@@ -85,7 +85,8 @@ func NewRouter(
 	userRoutes.Delete("/:id", userHandler.DeleteUser)
 
 	roomRoutes := api.Group("/rooms")
-	roomRoutes.Post("/", roomHandler.CreateRoom)
+	api.Post("/rooms/group", roomHandler.CreateGroup)
+	api.Post("/rooms/dm", roomHandler.GetOrCreateDM)
 	roomRoutes.Get("/", roomHandler.GetMyRooms)
 	roomRoutes.Get("/:id", roomHandler.GetRoomByID)
 	roomRoutes.Put("/:id/image", roomHandler.UpdateRoomImage)

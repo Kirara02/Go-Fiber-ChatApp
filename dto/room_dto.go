@@ -27,13 +27,13 @@ type RoomResponse struct {
 	CreatedAt     time.Time      `json:"created_at"`
 }
 
-// ToRoomResponse mengonversi domain.Room menjadi DTO.
 func ToRoomResponse(room *domain.Room, currentUserID uint, includeMembers bool) RoomResponse {
-	isGroup := len(room.Users) > 2
+	isGroup := room.Type == domain.RoomTypeGroup
 	displayName := room.Name
 
 	var roomImage *string
 
+	// Logika untuk DM sekarang lebih andal.
 	if !isGroup && len(room.Users) == 2 {
 		for _, user := range room.Users {
 			if user.ID != currentUserID {
@@ -45,10 +45,10 @@ func ToRoomResponse(room *domain.Room, currentUserID uint, includeMembers bool) 
 	} else {
 		roomImage = room.RoomImage
 	}
+	// ---------------------------------
 
 	var userResponses []UserResponse
 	if includeMembers {
-		// Hanya konversi data user jika diminta
 		userResponses = ToUserResponses(room.Users)
 	}
 
@@ -63,7 +63,7 @@ func ToRoomResponse(room *domain.Room, currentUserID uint, includeMembers bool) 
 	return RoomResponse{
 		ID:            room.ID,
 		Name:          displayName,
-		IsPrivate:     room.IsPrivate,
+		IsPrivate:     !isGroup, // IsPrivate sekarang adalah kebalikan dari IsGroup
 		IsGroup:       isGroup,
 		OwnerID:       room.OwnerID,
 		Users:         userResponses,

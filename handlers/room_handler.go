@@ -17,14 +17,11 @@ func NewRoomHandler(roomService services.RoomService) *RoomHandler {
 	return &RoomHandler{roomService: roomService}
 }
 
-func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
-	creatorIDLocals := c.Locals("user_id")
-	if creatorIDLocals == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pembuat dari token")
-	}
-	creatorID, ok := creatorIDLocals.(float64)
-	if !ok {
-		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pembuat tidak valid di context")
+// --- HANDLER BARU UNTUK MEMBUAT GRUP ---
+func (h *RoomHandler) CreateGroup(c *fiber.Ctx) error {
+	creatorID, err := utils.ExtractUserIDFromContext(c)
+	if err != nil {
+		return err
 	}
 
 	var req dto.CreateRoomRequest
@@ -32,34 +29,62 @@ func (h *RoomHandler) CreateRoom(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "Request body tidak valid")
 	}
 
-	roomResponse, err := h.roomService.CreateRoom(req, uint(creatorID))
+	// Panggil service baru yang spesifik untuk grup
+	roomResponse, err := h.roomService.CreateGroupRoom(req, creatorID)
 	if err != nil {
+		// Service akan memberikan pesan error yang relevan (misal: "nama grup wajib diisi")
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(utils.BaseResponse{
 		Success: true,
-		Message: "Room berhasil dibuat",
+		Message: "Grup berhasil dibuat",
 		Data:    roomResponse,
 	})
 }
 
-func (h *RoomHandler) GetMyRooms(c *fiber.Ctx) error {
-	userIDLocals := c.Locals("user_id")
-	if userIDLocals == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+func (h *RoomHandler) GetOrCreateDM(c *fiber.Ctx) error {
+	myUserID, err := utils.ExtractUserIDFromContext(c)
+	if err != nil {
+		return err
 	}
-	userID, ok := userIDLocals.(float64)
-	if !ok {
-		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid di context")
+	var req struct {
+		TargetUserID uint `json:"target_user_id"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Request body tidak valid: 'target_user_id' dibutuhkan")
+	}
+
+	if req.TargetUserID == 0 {
+		return fiber.NewError(fiber.StatusBadRequest, "'target_user_id' tidak boleh kosong")
+	}
+
+	// Panggil service baru yang spesifik untuk DM
+	roomResponse, err := h.roomService.GetOrCreateDirectMessageRoom(myUserID, req.TargetUserID)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
+		Success: true,
+		Message: "Room DM berhasil didapatkan",
+		Data:    roomResponse,
+	})
+}
+
+// --- HANDLER YANG SUDAH ADA (TIDAK BERUBAH) ---
+
+func (h *RoomHandler) GetMyRooms(c *fiber.Ctx) error {
+	userID, err := utils.ExtractUserIDFromContext(c)
+	if err != nil {
+		return err
 	}
 
 	view := c.Query("view", "detailed")
 	includeMembers := c.Query("include_members", "true") == "true"
-
 	showEmpty := c.Query("show_empty", "true") == "true"
 
-	rooms, err := h.roomService.GetMyRooms(uint(userID), view, includeMembers, showEmpty)
+	rooms, err := h.roomService.GetMyRooms(userID, view, includeMembers, showEmpty)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Gagal mengambil daftar room")
 	}
@@ -78,23 +103,16 @@ func (h *RoomHandler) GetRoomByID(c *fiber.Ctx) error {
 	}
 	roomID := uint(roomIDParam)
 
-	userIDLocals := c.Locals("user_id")
-	if userIDLocals == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+	currentUserID, err := utils.ExtractUserIDFromContext(c)
+	if err != nil {
+		return err
 	}
-	userIDFloat, ok := userIDLocals.(float64)
-	if !ok {
-		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid")
-	}
-	currentUserID := uint(userIDFloat)
 
-	// Ambil room dari service
 	room, err := h.roomService.GetRoomByID(roomID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusNotFound, err.Error())
 	}
 
-	// Cek apakah user termasuk anggota room
 	isMember, err := h.roomService.IsUserMember(currentUserID, roomID)
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, "Gagal memverifikasi keanggotaan room")
@@ -103,7 +121,6 @@ func (h *RoomHandler) GetRoomByID(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusForbidden, "Kamu bukan anggota room ini")
 	}
 
-	// Konversi ke response
 	roomResp := dto.ToRoomResponse(room, currentUserID, true)
 
 	return c.Status(fiber.StatusOK).JSON(utils.BaseResponse{
@@ -120,15 +137,10 @@ func (h *RoomHandler) UpdateRoomImage(c *fiber.Ctx) error {
 	}
 	roomID := uint(roomIDParam)
 
-	userIDLocals := c.Locals("user_id")
-	if userIDLocals == nil {
-		return fiber.NewError(fiber.StatusUnauthorized, "Gagal mendapatkan ID pengguna dari token")
+	currentUserID, err := utils.ExtractUserIDFromContext(c)
+	if err != nil {
+		return err
 	}
-	userIDFloat, ok := userIDLocals.(float64)
-	if !ok {
-		return fiber.NewError(fiber.StatusInternalServerError, "Tipe ID pengguna tidak valid")
-	}
-	currentUserID := uint(userIDFloat)
 
 	file, err := c.FormFile("room_image")
 	if err != nil {

@@ -14,7 +14,7 @@ type RoomRepository interface {
 	GetUserRoomsWithDetails(userID uint) ([]*domain.Room, error)
 	GetSimpleUserRooms(userID uint) ([]*domain.Room, error)
 	CheckUserInRoom(userID, roomID uint) (bool, error)
-	FindPrivateRoomByMembers(memberIDs []uint) (*domain.Room, error)
+	FindDirectMessageRoomByMembers(memberIDs []uint) (*domain.Room, error)
 	UpdateRoom(room *domain.Room) error
 }
 
@@ -134,19 +134,13 @@ func (r *roomRepository) CheckUserInRoom(userID, roomID uint) (bool, error) {
 	return count > 0, nil
 }
 
-func (r *roomRepository) FindPrivateRoomByMembers(memberIDs []uint) (*domain.Room, error) {
+func (r *roomRepository) FindDirectMessageRoomByMembers(memberIDs []uint) (*domain.Room, error) {
 	var room domain.Room
 
-	// Ini adalah query yang agak kompleks, mari kita bedah:
-	// 1. `SELECT room_id FROM user_rooms WHERE user_id IN (?) GROUP BY room_id HAVING COUNT(DISTINCT user_id) = ?`
-	//    - Subquery ini menemukan semua `room_id` yang memiliki jumlah anggota yang sama persis dengan yang kita cari.
-	// 2. `SELECT * FROM rooms WHERE id IN (...) AND is_private = true`
-	//    - Query utama mencari room berdasarkan ID yang ditemukan di subquery, dan memastikan itu adalah room privat.
-	// 3. `HAVING (SELECT COUNT(*) FROM user_rooms WHERE room_id = rooms.id) = ?`
-	//    - Ini adalah lapisan verifikasi kedua untuk memastikan room tersebut tidak memiliki anggota lain selain yang kita cari.
-
-	err := r.db.Joins("JOIN user_rooms ur ON ur.room_id = rooms.id").
-		Where("rooms.is_private = ?", true).
+	// Query ini sekarang lebih sederhana dan lebih andal.
+	err := r.db.
+		Joins("JOIN user_rooms ur ON ur.room_id = rooms.id").
+		Where("rooms.type = ?", domain.RoomTypeDM). // <-- Cek tipe 'dm'
 		Where("ur.user_id IN ?", memberIDs).
 		Group("rooms.id").
 		Having("COUNT(DISTINCT ur.user_id) = ?", len(memberIDs)).
@@ -155,7 +149,7 @@ func (r *roomRepository) FindPrivateRoomByMembers(memberIDs []uint) (*domain.Roo
 		First(&room).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil
+		return nil, nil // Kembalikan nil, nil jika tidak ditemukan, agar service bisa membuatnya
 	}
 
 	return &room, err

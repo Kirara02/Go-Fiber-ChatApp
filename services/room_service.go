@@ -9,13 +9,13 @@ import (
 	"main/utils"
 	"mime/multipart"
 	"sort"
-	"strings"
 	"time"
 )
 
 type RoomService interface {
-	CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error)
-	GetMyRooms(userID uint, view string, includeMembers bool,  showEmpty bool) ([]dto.RoomResponse, error)
+	GetOrCreateDirectMessageRoom(user1ID, user2ID uint) (*dto.RoomResponse, error)
+	CreateGroupRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error)
+	GetMyRooms(userID uint, view string, includeMembers bool, showEmpty bool) ([]dto.RoomResponse, error)
 	IsUserMember(userID, roomID uint) (bool, error)
 	GetRoomByID(roomID uint) (*domain.Room, error)
 	UpdateRoomImage(roomID uint, currentUserID uint, file *multipart.FileHeader) (*dto.RoomResponse, error)
@@ -35,23 +35,16 @@ func NewRoomService(roomRepo repository.RoomRepository, userRepo repository.User
 	}
 }
 
-func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error) {
+func (s *roomService) CreateGroupRoom(req dto.CreateRoomRequest, creatorID uint) (*dto.RoomResponse, error) {
+	if req.Name == "" {
+		return nil, errors.New("nama grup wajib diisi")
+	}
 
 	memberIDs := append(req.UserIDs, creatorID)
 	memberIDs = utils.UniqueUintSlice(memberIDs)
 
-	if len(memberIDs) < 2 {
-		return nil, errors.New("sebuah room membutuhkan minimal 2 anggota")
-	}
-
-	if len(memberIDs) == 2 {
-		existingRoom, err := s.roomRepo.FindPrivateRoomByMembers(memberIDs)
-		if err != nil {
-			return nil, err
-		}
-		if existingRoom != nil {
-			return nil, errors.New("direct message dengan pengguna ini sudah ada")
-		}
+	if len(memberIDs) < 3 {
+		return nil, errors.New("sebuah grup membutuhkan minimal 3 anggota")
 	}
 
 	members, err := s.userRepo.GetUsersByIDs(memberIDs)
@@ -60,28 +53,9 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 	}
 
 	newRoom := &domain.Room{
-		Name: req.Name,
-	}
-
-	if len(memberIDs) > 2 {
-		// GRUP
-		if req.Name == "" {
-			return nil, errors.New("nama grup wajib diisi untuk room dengan lebih dari 2 anggota")
-		}
-		newRoom.OwnerID = &creatorID
-	} else {
-		// DIRECT MESSAGE (DM)
-		newRoom.IsPrivate = true
-
-		var names []string
-		for _, member := range members {
-			names = append(names, member.Name)
-		}
-		sort.Strings(names)
-
-		if newRoom.Name == "" {
-			newRoom.Name = strings.Join(names, " & ")
-		}
+		Name:    req.Name,
+		Type:    domain.RoomTypeGroup, // <-- Tipe diatur secara eksplisit
+		OwnerID: &creatorID,
 	}
 
 	createdRoom, err := s.roomRepo.CreateRoom(newRoom, memberIDs)
@@ -90,6 +64,37 @@ func (s *roomService) CreateRoom(req dto.CreateRoomRequest, creatorID uint) (*dt
 	}
 
 	response := dto.ToRoomResponse(createdRoom, creatorID, true)
+	return &response, nil
+}
+
+func (s *roomService) GetOrCreateDirectMessageRoom(user1ID, user2ID uint) (*dto.RoomResponse, error) {
+	if user1ID == user2ID {
+		return nil, errors.New("tidak bisa membuat DM dengan diri sendiri")
+	}
+	memberIDs := []uint{user1ID, user2ID}
+
+	// Cek apakah DM sudah ada
+	existingRoom, err := s.roomRepo.FindDirectMessageRoomByMembers(memberIDs)
+	if err != nil {
+		return nil, err // Error database
+	}
+	if existingRoom != nil {
+		// DM sudah ada, kembalikan saja
+		response := dto.ToRoomResponse(existingRoom, user1ID, true)
+		return &response, nil
+	}
+
+	// Buat DM baru jika belum ada
+	newRoom := &domain.Room{
+		Type: domain.RoomTypeDM, // <-- Tipe diatur secara eksplisit
+	}
+
+	createdRoom, err := s.roomRepo.CreateRoom(newRoom, memberIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	response := dto.ToRoomResponse(createdRoom, user1ID, true)
 	return &response, nil
 }
 
